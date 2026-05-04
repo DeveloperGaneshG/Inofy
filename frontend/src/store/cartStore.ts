@@ -1,0 +1,68 @@
+import { create } from 'zustand';
+import { Product, CartItem } from '@/types';
+
+interface CartState {
+  items: CartItem[];
+  discountAmount: number;
+  addItem: (product: Product, quantity?: number) => void;
+  removeItem: (productId: string) => void;
+  updateQuantity: (productId: string, quantity: number) => void;
+  clearCart: () => void;
+  setDiscount: (amount: number) => void;
+  getSubtotal: () => number;
+  getTaxAmount: () => number;
+  getTotalAmount: () => number;
+}
+
+export const useCartStore = create<CartState>()((set, get) => ({
+  items: [],
+  discountAmount: 0,
+
+  addItem: (product, quantity = 1) => {
+    const items = get().items;
+    const existing = items.find((i) => i.product.id === product.id);
+    if (existing) {
+      const newQty = existing.quantity + quantity;
+      set({
+        items: items.map((i) =>
+          i.product.id === product.id
+            ? { ...i, quantity: newQty, totalPrice: newQty * i.unitPrice }
+            : i,
+        ),
+      });
+    } else {
+      const unitPrice = Number(product.price);
+      set({
+        items: [
+          ...items,
+          { product, quantity, unitPrice, totalPrice: unitPrice * quantity },
+        ],
+      });
+    }
+  },
+
+  removeItem: (productId) =>
+    set({ items: get().items.filter((i) => i.product.id !== productId) }),
+
+  updateQuantity: (productId, quantity) => {
+    if (quantity <= 0) {
+      get().removeItem(productId);
+      return;
+    }
+    set({
+      items: get().items.map((i) =>
+        i.product.id === productId
+          ? { ...i, quantity, totalPrice: quantity * i.unitPrice }
+          : i,
+      ),
+    });
+  },
+
+  clearCart: () => set({ items: [], discountAmount: 0 }),
+  setDiscount: (amount) => set({ discountAmount: amount }),
+
+  getSubtotal: () => get().items.reduce((sum, item) => sum + item.totalPrice, 0),
+  getTaxAmount: () => get().getSubtotal() * 0.18,
+  getTotalAmount: () =>
+    get().getSubtotal() + get().getTaxAmount() - get().discountAmount,
+}));
