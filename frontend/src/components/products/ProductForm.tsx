@@ -9,7 +9,6 @@ import { categoryService } from '@/services/categoryService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -22,8 +21,10 @@ const schema = z.object({
   name: z.string().min(1, 'Name is required'),
   sku: z.string().min(1, 'SKU is required'),
   barcode: z.string().optional(),
+  mrp: z.coerce.number().min(0).optional().or(z.literal('')).transform(v => v === '' ? undefined : Number(v) || undefined),
   price: z.coerce.number().min(0.01, 'Price must be > 0'),
   costPrice: z.coerce.number().min(0, 'Cost price required'),
+  gstRate: z.coerce.number().default(18),
   stock: z.coerce.number().int().min(0, 'Stock must be ≥ 0'),
   lowStockAlert: z.coerce.number().int().min(1).default(10),
   categoryId: z.string().min(1, 'Category is required'),
@@ -53,7 +54,7 @@ export default function ProductForm({ open, product, onClose, onSaved }: Props) 
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { lowStockAlert: 10, isActive: true, stock: 0 },
+    defaultValues: { lowStockAlert: 10, isActive: true, stock: 0, gstRate: 18 },
   });
 
   useEffect(() => {
@@ -69,8 +70,10 @@ export default function ProductForm({ open, product, onClose, onSaved }: Props) 
               name: product.name,
               sku: product.sku,
               barcode: product.barcode || '',
+              mrp: product.mrp ? Number(product.mrp) : undefined,
               price: Number(product.price),
               costPrice: Number(product.costPrice),
+              gstRate: Number(product.gstRate ?? 18),
               stock: product.stock,
               lowStockAlert: product.lowStockAlert,
               categoryId: product.categoryId,
@@ -125,7 +128,11 @@ export default function ProductForm({ open, product, onClose, onSaved }: Props) 
               <Input {...register('barcode')} placeholder="Optional" />
             </div>
             <div className="space-y-1">
-              <Label>Price (₹) *</Label>
+              <Label>MRP (₹)</Label>
+              <Input type="number" step="0.01" {...register('mrp')} placeholder="Optional" />
+            </div>
+            <div className="space-y-1">
+              <Label>Selling Price (₹) *</Label>
               <Input type="number" step="0.01" {...register('price')} placeholder="0.00" />
               {errors.price && <p className="text-xs text-destructive">{errors.price.message}</p>}
             </div>
@@ -143,14 +150,28 @@ export default function ProductForm({ open, product, onClose, onSaved }: Props) 
               <Label>Low Stock Alert</Label>
               <Input type="number" {...register('lowStockAlert')} placeholder="10" />
             </div>
+            <div className="space-y-1">
+              <Label>GST Rate *</Label>
+              <select
+                {...register('gstRate')}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                {[0, 5, 12, 18, 28].map((r) => (
+                  <option key={r} value={r}>{r}%</option>
+                ))}
+              </select>
+            </div>
             <div className="space-y-1 col-span-2">
               <Label>Category *</Label>
-              <Select {...register('categoryId')}>
+              <select
+                {...register('categoryId')}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
                 <option value="">Select category</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
-              </Select>
+              </select>
               {errors.categoryId && <p className="text-xs text-destructive">{errors.categoryId.message}</p>}
             </div>
             <div className="space-y-1 col-span-2">

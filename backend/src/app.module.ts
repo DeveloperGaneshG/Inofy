@@ -8,6 +8,10 @@ import { CategoriesModule } from './categories/categories.module';
 import { BillsModule } from './bills/bills.module';
 import { CustomersModule } from './customers/customers.module';
 import { ReportsModule } from './reports/reports.module';
+import { SuppliersModule } from './suppliers/suppliers.module';
+import { PurchasesModule } from './purchases/purchases.module';
+import { ReturnsModule } from './returns/returns.module';
+import { CreditBookModule } from './credit-book/credit-book.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -25,6 +29,10 @@ import { AppService } from './app.service';
     BillsModule,
     CustomersModule,
     ReportsModule,
+    SuppliersModule,
+    PurchasesModule,
+    ReturnsModule,
+    CreditBookModule,
   ],
   controllers: [AppController],
   providers: [AppService],

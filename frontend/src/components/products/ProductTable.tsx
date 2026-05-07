@@ -19,7 +19,9 @@ export default function ProductTable({ products, onEdit, onDelete }: Props) {
           <TableHead>Product</TableHead>
           <TableHead>SKU</TableHead>
           <TableHead>Category</TableHead>
+          <TableHead className="text-right">MRP</TableHead>
           <TableHead className="text-right">Price</TableHead>
+          <TableHead className="text-right">GST%</TableHead>
           <TableHead className="text-right">Stock</TableHead>
           <TableHead>Status</TableHead>
           <TableHead>Added</TableHead>
@@ -49,7 +51,20 @@ export default function ProductTable({ products, onEdit, onDelete }: Props) {
               </TableCell>
               <TableCell className="font-mono text-xs">{product.sku}</TableCell>
               <TableCell className="text-sm">{product.category?.name ?? '—'}</TableCell>
-              <TableCell className="text-right font-medium">{formatCurrency(Number(product.price))}</TableCell>
+              <TableCell className="text-right text-xs text-muted-foreground">
+                {product.mrp ? formatCurrency(Number(product.mrp)) : '—'}
+              </TableCell>
+              <TableCell className="text-right font-medium">
+                <div>{formatCurrency(Number(product.price))}</div>
+                {product.mrp && Number(product.mrp) > Number(product.price) && (
+                  <div className="text-[10px] text-green-600 font-normal">
+                    {Math.round(((Number(product.mrp) - Number(product.price)) / Number(product.mrp)) * 100)}% off
+                  </div>
+                )}
+              </TableCell>
+              <TableCell className="text-right text-sm text-muted-foreground">
+                {Number(product.gstRate ?? 18)}%
+              </TableCell>
               <TableCell className="text-right">
                 <span className={`font-medium ${isOutOfStock ? 'text-destructive' : isLowStock ? 'text-yellow-600' : ''}`}>
                   {product.stock}

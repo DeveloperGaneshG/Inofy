@@ -28,13 +28,16 @@ export class ResponseInterceptor<T>
     const statusCode: number = response.statusCode;
 
     return next.handle().pipe(
-      map((data) => ({
-        success: true,
-        statusCode,
-        message: this.getDefaultMessage(statusCode),
-        data: data ?? null,
-        timestamp: new Date().toISOString(),
-      })),
+      map((data) => {
+        const normalized = data != null ? JSON.parse(JSON.stringify(data)) : null;
+        return {
+          success: true,
+          statusCode,
+          message: this.getDefaultMessage(statusCode),
+          data: normalized,
+          timestamp: new Date().toISOString(),
+        };
+      }),
     );
   }
 

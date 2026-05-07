@@ -5,6 +5,7 @@ export interface CreateBillPayload {
   customerId?: string;
   paymentMethod: PaymentMethod;
   discountAmount?: number;
+  redeemPoints?: boolean;
   items: { productId: string; quantity: number; unitPrice: number }[];
 }
 

@@ -58,13 +58,14 @@ export default function Invoice({ bill }: Props) {
     autoTable(doc, {
       startY: 80,
       head: [['#', 'Product', 'Qty', 'Unit Price', 'Total']],
-      body: bill.items.map((item, i) => [
-        i + 1,
-        item.product?.name ?? item.productId,
-        item.quantity,
-        formatCurrency(Number(item.unitPrice)),
-        formatCurrency(Number(item.totalPrice)),
-      ]),
+      body: bill.items.map((item, i) => {
+        const mrp = item.product?.mrp ? Number(item.product.mrp) : null;
+        const price = Number(item.unitPrice);
+        const nameCell = mrp && mrp > price
+          ? `${item.product?.name ?? item.productId}\n(MRP: ${formatCurrency(mrp)})`
+          : item.product?.name ?? item.productId;
+        return [i + 1, nameCell, item.quantity, formatCurrency(price), formatCurrency(Number(item.totalPrice))];
+      }),
       headStyles: { fillColor: [59, 130, 246] },
       styles: { fontSize: 9 },
     });
@@ -72,7 +73,7 @@ export default function Invoice({ bill }: Props) {
     const finalY = (doc as any).lastAutoTable.finalY + 8;
     doc.setFontSize(9);
     doc.text(`Subtotal: ${formatCurrency(Number(bill.subtotal))}`, pageWidth - 14, finalY, { align: 'right' });
-    doc.text(`GST (18%): ${formatCurrency(Number(bill.taxAmount))}`, pageWidth - 14, finalY + 5, { align: 'right' });
+    doc.text(`GST: ${formatCurrency(Number(bill.taxAmount))}`, pageWidth - 14, finalY + 5, { align: 'right' });
     if (Number(bill.discountAmount) > 0) {
       doc.text(`Discount: -${formatCurrency(Number(bill.discountAmount))}`, pageWidth - 14, finalY + 10, { align: 'right' });
     }
@@ -142,6 +143,7 @@ export default function Invoice({ bill }: Props) {
               <th className="pb-2 text-left text-muted-foreground">Product</th>
               <th className="pb-2 text-right text-muted-foreground">Qty</th>
               <th className="pb-2 text-right text-muted-foreground">Unit Price</th>
+              <th className="pb-2 text-right text-muted-foreground">GST%</th>
               <th className="pb-2 text-right text-muted-foreground">Total</th>
             </tr>
           </thead>
@@ -154,7 +156,15 @@ export default function Invoice({ bill }: Props) {
                   {item.product?.sku && <p className="text-xs text-muted-foreground">SKU: {item.product.sku}</p>}
                 </td>
                 <td className="py-2 text-right">{item.quantity}</td>
-                <td className="py-2 text-right">{formatCurrency(Number(item.unitPrice))}</td>
+                <td className="py-2 text-right">
+                  <div>{formatCurrency(Number(item.unitPrice))}</div>
+                  {item.product?.mrp && Number(item.product.mrp) > Number(item.unitPrice) && (
+                    <div className="text-[10px] text-muted-foreground line-through">{formatCurrency(Number(item.product.mrp))}</div>
+                  )}
+                </td>
+                <td className="py-2 text-right text-sm text-muted-foreground">
+                  {item.product?.gstRate != null ? `${Number(item.product.gstRate)}%` : '—'}
+                </td>
                 <td className="py-2 text-right font-medium">{formatCurrency(Number(item.totalPrice))}</td>
               </tr>
             ))}
@@ -170,7 +180,7 @@ export default function Invoice({ bill }: Props) {
             <span>{formatCurrency(Number(bill.subtotal))}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">GST (18%)</span>
+            <span className="text-muted-foreground">GST</span>
             <span>{formatCurrency(Number(bill.taxAmount))}</span>
           </div>
           {Number(bill.discountAmount) > 0 && (
@@ -183,6 +193,21 @@ export default function Invoice({ bill }: Props) {
             <span>Total</span>
             <span>{formatCurrency(Number(bill.totalAmount))}</span>
           </div>
+          {(() => {
+            const savings = bill.items.reduce((sum, item) => {
+              const mrp = item.product?.mrp ? Number(item.product.mrp) : null;
+              if (mrp && mrp > Number(item.unitPrice)) {
+                return sum + (mrp - Number(item.unitPrice)) * item.quantity;
+              }
+              return sum;
+            }, 0);
+            return savings > 0 ? (
+              <div className="flex justify-between text-sm text-green-600 font-medium">
+                <span>You saved</span>
+                <span>{formatCurrency(savings)}</span>
+              </div>
+            ) : null;
+          })()}
         </div>
 
         <Separator className="my-6" />

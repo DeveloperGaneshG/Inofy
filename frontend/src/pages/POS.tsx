@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, ShoppingCart, UserSearch, Trash2, Percent } from 'lucide-react';
+import { Search, ShoppingCart, UserSearch, Trash2, Percent, ScanLine } from 'lucide-react';
 import { Product, Customer } from '@/types';
 import { productService } from '@/services/productService';
 import { customerService } from '@/services/customerService';
@@ -30,12 +30,9 @@ export default function POS() {
   const { items, addItem, clearCart, setDiscount, discountAmount, getSubtotal, getTaxAmount, getTotalAmount } =
     useCartStore();
 
+  // Auto-focus on mount + F2 refocus
   useEffect(() => {
-    loadProducts();
-  }, []);
-
-  // F2 focuses search
-  useEffect(() => {
+    searchRef.current?.focus();
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'F2') { e.preventDefault(); searchRef.current?.focus(); }
     };
@@ -43,24 +40,48 @@ export default function POS() {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  const loadProducts = async (q?: string) => {
+  const loadProducts = useCallback(async (q?: string) => {
     try {
       const res = q
         ? await productService.search(q)
         : await productService.getAll();
       setProducts(res.data.data.filter((p) => p.isActive));
     } catch {}
-  };
+  }, []);
+
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
+
+  // Continuous scan: when products update, check for exact barcode match → auto-add
+  useEffect(() => {
+    if (!searchQuery.trim()) return;
+    const exact = products.find(
+      (p) => p.barcode && p.barcode.toLowerCase() === searchQuery.trim().toLowerCase(),
+    );
+    if (exact) addToCartAndReset(exact);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [products]);
+
+  const addToCartAndReset = useCallback((product: Product) => {
+    if (product.stock <= 0) return;
+    addItem(product);
+    setSearchQuery('');
+    loadProducts();
+    requestAnimationFrame(() => searchRef.current?.focus());
+  }, [addItem, loadProducts]);
 
   const handleSearch = useCallback((q: string) => {
     setSearchQuery(q);
     loadProducts(q || undefined);
-  }, []);
+  }, [loadProducts]);
 
   const handleSearchKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && products.length > 0) {
-      addItem(products[0]);
-    }
+    if (e.key !== 'Enter' || products.length === 0) return;
+    const exact = products.find(
+      (p) => p.barcode && p.barcode.toLowerCase() === searchQuery.trim().toLowerCase(),
+    );
+    addToCartAndReset(exact ?? products[0]);
   };
 
   const handleCustomerSearch = async (q: string) => {
@@ -120,12 +141,16 @@ export default function POS() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               ref={searchRef}
-              className="pl-8"
-              placeholder="Search by name or barcode… (F2)"
+              className="pl-8 pr-20"
+              placeholder="Scan barcode or search by name…"
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
               onKeyDown={handleSearchKeyDown}
             />
+            <div className="absolute right-2.5 top-2 flex items-center gap-1 text-xs text-muted-foreground">
+              <ScanLine className="h-3.5 w-3.5" />
+              <span>F2</span>
+            </div>
           </div>
         </div>
 
@@ -202,7 +227,7 @@ export default function POS() {
             <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
               <ShoppingCart className="h-8 w-8 opacity-30" />
               <p className="text-sm">Cart is empty</p>
-              <p className="text-xs">Press Enter to add the first result</p>
+              <p className="text-xs">Scan a barcode or press Enter to add</p>
             </div>
           ) : (
             items.map((item) => <CartItemComponent key={item.product.id} item={item} />)
@@ -216,7 +241,7 @@ export default function POS() {
             <span>{formatCurrency(getSubtotal())}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">GST (18%)</span>
+            <span className="text-muted-foreground">GST</span>
             <span>{formatCurrency(getTaxAmount())}</span>
           </div>
           <div className="flex items-center gap-2">

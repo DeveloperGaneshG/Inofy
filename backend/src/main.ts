@@ -1,5 +1,5 @@
-import { NestFactory, Reflector } from '@nestjs/core';
-import { ValidationPipe, ClassSerializerInterceptor } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
@@ -9,7 +9,7 @@ async function bootstrap() {
 
   // ── CORS ─────────────────────────────────────────────────────────────────
   app.enableCors({
-    origin: ['http://localhost:5173'],
+    origin: /^http:\/\/localhost(:\d+)?$/,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
@@ -31,10 +31,7 @@ async function bootstrap() {
   );
 
   // ── Global interceptors ───────────────────────────────────────────────────
-  app.useGlobalInterceptors(
-    new ResponseInterceptor(),
-    new ClassSerializerInterceptor(app.get(Reflector)),
-  );
+  app.useGlobalInterceptors(new ResponseInterceptor());
 
   // ── Global filters ────────────────────────────────────────────────────────
   app.useGlobalFilters(new HttpExceptionFilter());

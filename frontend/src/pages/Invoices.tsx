@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Eye, XCircle, Search } from 'lucide-react';
+import { Eye, XCircle, Search, RotateCcw } from 'lucide-react';
 import { Bill } from '@/types';
 import { billService } from '@/services/billService';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import Invoice from '@/components/Invoice';
+import ReturnModal from '@/components/ReturnModal';
 
 export default function Invoices() {
   const [bills, setBills] = useState<Bill[]>([]);
@@ -18,6 +19,7 @@ export default function Invoices() {
   const [loading, setLoading] = useState(true);
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
   const [cancelTarget, setCancelTarget] = useState<Bill | null>(null);
+  const [returnBill, setReturnBill] = useState<Bill | null>(null);
 
   useEffect(() => {
     loadBills();
@@ -108,6 +110,11 @@ export default function Invoices() {
                       <Button size="icon" variant="ghost" onClick={() => handleViewBill(bill.id)}>
                         <Eye className="h-4 w-4" />
                       </Button>
+                      {bill.status === 'PAID' && (
+                        <Button size="icon" variant="ghost" className="text-amber-600 hover:text-amber-700" title="Return items" onClick={async () => { const res = await billService.getById(bill.id); setReturnBill(res.data.data); }}>
+                          <RotateCcw className="h-4 w-4" />
+                        </Button>
+                      )}
                       {bill.status !== 'CANCELLED' && (
                         <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setCancelTarget(bill)}>
                           <XCircle className="h-4 w-4" />
@@ -141,11 +148,33 @@ export default function Invoices() {
         <Dialog open={!!selectedBill} onOpenChange={() => setSelectedBill(null)}>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Invoice — {selectedBill.billNumber}</DialogTitle>
+              <div className="flex items-center justify-between pr-8">
+                <DialogTitle>Invoice — {selectedBill.billNumber}</DialogTitle>
+                {selectedBill.status === 'PAID' && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-amber-600 border-amber-300 hover:bg-amber-50"
+                    onClick={() => { setReturnBill(selectedBill); setSelectedBill(null); }}
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" /> Return Items
+                  </Button>
+                )}
+              </div>
             </DialogHeader>
             <Invoice bill={selectedBill} />
           </DialogContent>
         </Dialog>
+      )}
+
+      {/* Return Modal */}
+      {returnBill && (
+        <ReturnModal
+          bill={returnBill}
+          open={!!returnBill}
+          onClose={() => setReturnBill(null)}
+          onReturned={() => { setReturnBill(null); loadBills(); }}
+        />
       )}
 
       {/* Cancel Confirmation */}

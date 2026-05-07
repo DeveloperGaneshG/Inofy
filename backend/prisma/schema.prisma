@@ -26,6 +26,29 @@ enum BillStatus {
   CANCELLED
 }
 
+enum PurchaseStatus {
+  DRAFT
+  RECEIVED
+  CANCELLED
+}
+
+enum StockMovementType {
+  PURCHASE
+  SALE
+  RETURN
+  ADJUSTMENT
+}
+
+enum CreditTransactionType {
+  CREDIT
+  PAYMENT
+}
+
+enum ReturnType {
+  REFUND
+  EXCHANGE
+}
+
 // ─── User ────────────────────────────────────────────────────────────────────
 
 model User {
@@ -34,9 +57,12 @@ model User {
   email     String   @unique
   password  String
   role      Role     @default(CASHIER)
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
 
-  bills Bill[]
+  bills     Bill[]
+  purchases Purchase[]
+  returns   Return[]
 
   @@map("users")
 }
@@ -60,8 +86,10 @@ model Product {
   name          String
   sku           String   @unique
   barcode       String?  @unique
+  mrp           Decimal? @db.Decimal(10, 2)
   price         Decimal  @db.Decimal(10, 2)
   costPrice     Decimal  @db.Decimal(10, 2)
+  gstRate       Decimal  @default(18) @db.Decimal(5, 2)
   stock         Int      @default(0)
   lowStockAlert Int      @default(10)
   categoryId    String
@@ -69,8 +97,11 @@ model Product {
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
 
-  category  Category   @relation(fields: [categoryId], references: [id])
-  billItems BillItem[]
+  category       Category        @relation(fields: [categoryId], references: [id])
+  billItems      BillItem[]
+  purchaseItems  PurchaseItem[]
+  stockMovements StockMovement[]
+  returnItems    ReturnItem[]
 
   @@map("products")
 }
@@ -86,7 +117,8 @@ model Customer {
   loyaltyPoints Int      @default(0)
   createdAt     DateTime @default(now())
 
-  bills Bill[]
+  bills              Bill[]
+  creditTransactions CreditTransaction[]
 
   @@map("customers")
 }
@@ -109,6 +141,7 @@ model Bill {
   customer Customer?  @relation(fields: [customerId], references: [id])
   user     User       @relation(fields: [userId], references: [id])
   items    BillItem[]
+  returns  Return[]
 
   @@map("bills")
 }
@@ -123,8 +156,135 @@ model BillItem {
   unitPrice  Decimal @db.Decimal(10, 2)
   totalPrice Decimal @db.Decimal(10, 2)
 
-  bill    Bill    @relation(fields: [billId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
+  bill        Bill         @relation(fields: [billId], references: [id], onDelete: Cascade)
+  product     Product      @relation(fields: [productId], references: [id])
+  returnItems ReturnItem[]
 
   @@map("bill_items")
+}
+
+// ─── Supplier ────────────────────────────────────────────────────────────────
+
+model Supplier {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String?
+  email     String?  @unique
+  address   String?
+  gstNumber String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  purchases Purchase[]
+
+  @@map("suppliers")
+}
+
+// ─── Purchase ────────────────────────────────────────────────────────────────
+
+model Purchase {
+  id             String         @id @default(uuid())
+  purchaseNumber String         @unique
+  supplierId     String
+  userId         String
+  status         PurchaseStatus @default(DRAFT)
+  notes          String?
+  totalAmount    Decimal        @db.Decimal(10, 2)
+  receivedAt     DateTime?
+  createdAt      DateTime       @default(now())
+
+  supplier Supplier       @relation(fields: [supplierId], references: [id])
+  user     User           @relation(fields: [userId], references: [id])
+  items    PurchaseItem[]
+
+  @@map("purchases")
+}
+
+// ─── PurchaseItem ─────────────────────────────────────────────────────────────
+
+model PurchaseItem {
+  id          String    @id @default(uuid())
+  purchaseId  String
+  productId   String
+  quantity    Int
+  costPrice   Decimal   @db.Decimal(10, 2)
+  totalCost   Decimal   @db.Decimal(10, 2)
+  batchNumber String?
+  expiryDate  DateTime?
+
+  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id])
+
+  @@map("purchase_items")
+}
+
+// ─── StockMovement ───────────────────────────────────────────────────────────
+
+model StockMovement {
+  id            String            @id @default(uuid())
+  productId     String
+  type          StockMovementType
+  quantity      Int
+  referenceId   String?
+  referenceType String?
+  note          String?
+  userId        String?
+  createdAt     DateTime          @default(now())
+
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("stock_movements")
+}
+
+// ─── Return ──────────────────────────────────────────────────────────────────
+
+model Return {
+  id           String     @id @default(uuid())
+  returnNumber String     @unique
+  billId       String
+  userId       String
+  type         ReturnType @default(REFUND)
+  reason       String?
+  refundAmount Decimal    @db.Decimal(10, 2)
+  createdAt    DateTime   @default(now())
+
+  bill  Bill         @relation(fields: [billId], references: [id])
+  user  User         @relation(fields: [userId], references: [id])
+  items ReturnItem[]
+
+  @@map("returns")
+}
+
+// ─── ReturnItem ───────────────────────────────────────────────────────────────
+
+model ReturnItem {
+  id         String  @id @default(uuid())
+  returnId   String
+  billItemId String
+  productId  String
+  quantity   Int
+  unitPrice  Decimal @db.Decimal(10, 2)
+  totalPrice Decimal @db.Decimal(10, 2)
+
+  return   Return   @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  billItem BillItem @relation(fields: [billItemId], references: [id])
+  product  Product  @relation(fields: [productId], references: [id])
+
+  @@map("return_items")
+}
+
+// ─── CreditTransaction (Khata Book) ──────────────────────────────────────────
+
+model CreditTransaction {
+  id          String                @id @default(uuid())
+  customerId  String
+  type        CreditTransactionType
+  amount      Decimal               @db.Decimal(10, 2)
+  description String?
+  note        String?
+  createdAt   DateTime              @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  @@map("credit_transactions")
 }

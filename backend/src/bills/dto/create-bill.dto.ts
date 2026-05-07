@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEnum, IsNumber, IsArray, ValidateNested, Min, IsUUID } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsNumber, IsArray, ValidateNested, Min, IsUUID, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PaymentMethod } from '@prisma/client';
 
@@ -27,6 +27,10 @@ export class CreateBillDto {
   @IsNumber()
   @Min(0)
   discountAmount?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  redeemPoints?: boolean;
 
   @IsArray()
   @ValidateNested({ each: true })

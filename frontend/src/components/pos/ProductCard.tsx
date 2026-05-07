@@ -31,7 +31,17 @@ export default function ProductCard({ product, onAdd }: Props) {
       <p className="mt-0.5 text-xs text-muted-foreground">{product.category?.name}</p>
 
       <div className="mt-2 flex items-center justify-between">
-        <span className="text-sm font-bold text-primary">{formatCurrency(Number(product.price))}</span>
+        <div>
+          <span className="text-sm font-bold text-primary">{formatCurrency(Number(product.price))}</span>
+          {product.mrp && Number(product.mrp) > Number(product.price) && (
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-muted-foreground line-through">{formatCurrency(Number(product.mrp))}</span>
+              <span className="text-[10px] font-medium text-green-600">
+                {Math.round(((Number(product.mrp) - Number(product.price)) / Number(product.mrp)) * 100)}% off
+              </span>
+            </div>
+          )}
+        </div>
         {!isOutOfStock && (
           <button
             className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white hover:bg-primary/90"

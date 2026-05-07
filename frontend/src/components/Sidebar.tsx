@@ -9,6 +9,9 @@ import {
   Settings,
   LogOut,
   Store,
+  Building2,
+  Truck,
+  BookOpen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
@@ -17,7 +20,10 @@ const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/pos', label: 'POS', icon: ShoppingCart },
   { to: '/products', label: 'Products', icon: Package },
+  { to: '/purchases', label: 'Purchases', icon: Truck },
+  { to: '/suppliers', label: 'Suppliers', icon: Building2 },
   { to: '/customers', label: 'Customers', icon: Users },
+  { to: '/credit-book', label: 'Khata Book', icon: BookOpen },
   { to: '/invoices', label: 'Invoices', icon: FileText },
   { to: '/reports', label: 'Reports', icon: BarChart3 },
   { to: '/settings', label: 'Settings', icon: Settings },

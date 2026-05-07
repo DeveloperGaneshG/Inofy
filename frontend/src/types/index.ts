@@ -1,6 +1,9 @@
 export type Role = 'ADMIN' | 'CASHIER';
 export type PaymentMethod = 'CASH' | 'CARD' | 'UPI';
 export type BillStatus = 'PENDING' | 'PAID' | 'CANCELLED';
+export type PurchaseStatus = 'DRAFT' | 'RECEIVED' | 'CANCELLED';
+export type StockMovementType = 'PURCHASE' | 'SALE' | 'RETURN' | 'ADJUSTMENT';
+export type ReturnType = 'REFUND' | 'EXCHANGE';
 
 export interface User {
   id: string;
@@ -22,8 +25,10 @@ export interface Product {
   name: string;
   sku: string;
   barcode?: string;
+  mrp?: number;
   price: number;
   costPrice: number;
+  gstRate: number;
   stock: number;
   lowStockAlert: number;
   categoryId: string;
@@ -53,6 +58,30 @@ export interface BillItem {
   totalPrice: number;
 }
 
+export interface ReturnItem {
+  id: string;
+  returnId: string;
+  billItemId: string;
+  productId: string;
+  product: Pick<Product, 'id' | 'name' | 'sku'>;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
+export interface Return {
+  id: string;
+  returnNumber: string;
+  billId: string;
+  userId: string;
+  user: Pick<User, 'id' | 'name'>;
+  type: ReturnType;
+  reason?: string;
+  refundAmount: number;
+  createdAt: string;
+  items: ReturnItem[];
+}
+
 export interface Bill {
   id: string;
   billNumber: string;
@@ -68,6 +97,7 @@ export interface Bill {
   status: BillStatus;
   createdAt: string;
   items: BillItem[];
+  returns?: Return[];
 }
 
 export interface ApiResponse<T> {
@@ -126,6 +156,88 @@ export interface RevenueReport {
   totalSubtotal: number;
   totalOrders: number;
   dailyRevenue: { date: string; revenue: number }[];
+}
+
+export interface Supplier {
+  id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  gstNumber?: string;
+  isActive: boolean;
+  createdAt: string;
+  _count?: { purchases: number };
+}
+
+export interface PurchaseItem {
+  id: string;
+  purchaseId: string;
+  productId: string;
+  product: Product;
+  quantity: number;
+  costPrice: number;
+  totalCost: number;
+  batchNumber?: string;
+  expiryDate?: string;
+}
+
+export interface Purchase {
+  id: string;
+  purchaseNumber: string;
+  supplierId: string;
+  supplier: Supplier;
+  userId: string;
+  user: Pick<User, 'id' | 'name'>;
+  status: PurchaseStatus;
+  notes?: string;
+  totalAmount: number;
+  receivedAt?: string;
+  createdAt: string;
+  items: PurchaseItem[];
+  _count?: { items: number };
+}
+
+export interface StockMovement {
+  id: string;
+  productId: string;
+  product: Pick<Product, 'id' | 'name' | 'sku'>;
+  type: StockMovementType;
+  quantity: number;
+  referenceId?: string;
+  referenceType?: string;
+  note?: string;
+  userId?: string;
+  createdAt: string;
+}
+
+export type CreditTransactionType = 'CREDIT' | 'PAYMENT';
+
+export interface CreditTransaction {
+  id: string;
+  customerId: string;
+  type: CreditTransactionType;
+  amount: number;
+  description?: string;
+  note?: string;
+  runningBalance?: number;
+  createdAt: string;
+}
+
+export interface CreditCustomer extends Customer {
+  creditBalance: number;
+  lastActivity: string | null;
+}
+
+export interface CreditCustomerDetail extends Customer {
+  creditBalance: number;
+  creditTransactions: CreditTransaction[];
+}
+
+export interface CreditSummary {
+  totalOutstanding: number;
+  debtorCount: number;
+  clearedCount: number;
 }
 
 export interface InventoryReport {

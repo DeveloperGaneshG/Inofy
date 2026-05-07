@@ -16,6 +16,12 @@ export class CreateProductDto {
 
   @IsNumber()
   @Min(0)
+  @IsOptional()
+  @Type(() => Number)
+  mrp?: number;
+
+  @IsNumber()
+  @Min(0)
   @Type(() => Number)
   price: number;
 
@@ -43,6 +49,12 @@ export class CreateProductDto {
   @IsString()
   @IsOptional()
   imageUrl?: string;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  @Type(() => Number)
+  gstRate?: number;
 
   @IsBoolean()
   @IsOptional()

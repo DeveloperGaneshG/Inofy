@@ -2,29 +2,14 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBillDto } from './dto/create-bill.dto';
 import { UpdateBillStatusDto } from './dto/update-bill-status.dto';
-import { BillStatus } from '@prisma/client';
-
-const TAX_RATE = 0.18;
+import { BillStatus, Prisma, StockMovementType } from '@prisma/client';
 
 @Injectable()
 export class BillsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private async generateBillNumber(): Promise<string> {
-    const year = new Date().getFullYear();
-    const count = await this.prisma.bill.count({
-      where: {
-        createdAt: {
-          gte: new Date(`${year}-01-01`),
-          lt: new Date(`${year + 1}-01-01`),
-        },
-      },
-    });
-    return `BILL-${year}-${String(count + 1).padStart(4, '0')}`;
-  }
-
   async create(createBillDto: CreateBillDto, userId: string) {
-    const { items, customerId, paymentMethod, discountAmount = 0 } = createBillDto;
+    const { items, customerId, paymentMethod, discountAmount = 0, redeemPoints = false } = createBillDto;
 
     const productIds = items.map((item) => item.productId);
     const products = await this.prisma.product.findMany({
@@ -40,19 +25,37 @@ export class BillsService {
       if (!product.isActive) {
         throw new BadRequestException(`Product "${product.name}" is not active`);
       }
-      if (product.stock < item.quantity) {
-        throw new BadRequestException(
-          `Insufficient stock for "${product.name}". Available: ${product.stock}`,
-        );
-      }
     }
 
     const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-    const taxAmount = subtotal * TAX_RATE;
-    const totalAmount = subtotal + taxAmount - discountAmount;
-    const billNumber = await this.generateBillNumber();
+    const taxAmount = items.reduce((sum, item) => {
+      const product = products.find((p) => p.id === item.productId)!;
+      const rate = Number(product.gstRate) / 100;
+      return sum + item.unitPrice * item.quantity * rate;
+    }, 0);
+    const baseTotal = subtotal + taxAmount - discountAmount;
+
+    let pointsRedeemed = 0;
+    if (redeemPoints && customerId) {
+      const customer = await this.prisma.customer.findUnique({ where: { id: customerId } });
+      const available = customer?.loyaltyPoints ?? 0;
+      if (available >= 10) {
+        const maxRedeem = Math.floor(baseTotal * 0.2);
+        pointsRedeemed = Math.min(available, maxRedeem);
+      }
+    }
+
+    const totalAmount = baseTotal - pointsRedeemed;
+    const finalDiscount = discountAmount + pointsRedeemed;
 
     return this.prisma.$transaction(async (tx) => {
+      // Generate bill number inside transaction — prevents duplicates under concurrency
+      const year = new Date().getFullYear();
+      const count = await tx.bill.count({
+        where: { createdAt: { gte: new Date(`${year}-01-01`), lt: new Date(`${year + 1}-01-01`) } },
+      });
+      const billNumber = `BILL-${year}-${String(count + 1).padStart(4, '0')}`;
+
       const bill = await tx.bill.create({
         data: {
           billNumber,
@@ -60,7 +63,7 @@ export class BillsService {
           userId,
           subtotal,
           taxAmount,
-          discountAmount,
+          discountAmount: finalDiscount,
           totalAmount,
           paymentMethod,
           status: BillStatus.PAID,
@@ -80,25 +83,42 @@ export class BillsService {
         },
       });
 
+      // Atomic decrement — fails if stock < quantity, preventing overselling
       for (const item of items) {
-        await tx.product.update({
-          where: { id: item.productId },
+        const result = await tx.product.updateMany({
+          where: { id: item.productId, stock: { gte: item.quantity } },
           data: { stock: { decrement: item.quantity } },
+        });
+        if (result.count === 0) {
+          const product = products.find((p) => p.id === item.productId)!;
+          throw new BadRequestException(
+            `Insufficient stock for "${product.name}". Stock may have changed — please refresh.`,
+          );
+        }
+        await tx.stockMovement.create({
+          data: {
+            productId: item.productId,
+            type: StockMovementType.SALE,
+            quantity: item.quantity,
+            referenceId: bill.id,
+            referenceType: 'Bill',
+            note: `Sale ${bill.billNumber}`,
+            userId,
+          },
         });
       }
 
       if (customerId) {
         const pointsEarned = Math.floor(totalAmount / 100);
-        if (pointsEarned > 0) {
-          await tx.customer.update({
-            where: { id: customerId },
-            data: { loyaltyPoints: { increment: pointsEarned } },
-          });
-        }
+        const netPointChange = pointsEarned - pointsRedeemed;
+        await tx.customer.update({
+          where: { id: customerId },
+          data: { loyaltyPoints: { increment: netPointChange } },
+        });
       }
 
       return bill;
-    });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
 
   async findAll(page = 1, limit = 10) {
@@ -137,6 +157,9 @@ export class BillsService {
         items: {
           include: { product: { include: { category: true } } },
         },
+        returns: {
+          include: { items: true },
+        },
       },
     });
 
@@ -166,6 +189,16 @@ export class BillsService {
           await tx.product.update({
             where: { id: item.productId },
             data: { stock: { increment: item.quantity } },
+          });
+          await tx.stockMovement.create({
+            data: {
+              productId: item.productId,
+              type: StockMovementType.RETURN,
+              quantity: item.quantity,
+              referenceId: id,
+              referenceType: 'Bill',
+              note: `Cancelled bill ${bill.id}`,
+            },
           });
         }
 

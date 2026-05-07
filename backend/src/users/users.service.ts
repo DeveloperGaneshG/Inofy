@@ -5,8 +5,25 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
-import { UserEntity } from '../auth/auth.service';
-import { Role } from '@prisma/client';
+import { Role, User } from '@prisma/client';
+
+export class UserEntity {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  isActive: boolean;
+  createdAt: Date;
+
+  constructor(user: User) {
+    this.id = user.id;
+    this.name = user.name;
+    this.email = user.email;
+    this.role = user.role;
+    this.isActive = user.isActive;
+    this.createdAt = user.createdAt;
+  }
+}
 import { IsEmail, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class UpdateUserDto {
