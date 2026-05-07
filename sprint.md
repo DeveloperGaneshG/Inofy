@@ -1,7 +1,7 @@
 # Invofy — Mart Billing Software · Complete Project Guide
 
 > **Stack:** NestJS + Prisma + PostgreSQL (backend) · React + TypeScript + Vite + Tailwind (frontend)
-> **Last Updated:** 2026-05-05
+> **Last Updated:** 2026-05-07
 
 ---
 
@@ -412,6 +412,58 @@ Opens the Return Modal:
 
 ---
 
+### Screen 11 — Khata Book (`/credit-book`)
+
+This screen is optional — mart owners can use it when customers take goods on credit and pay later (local "udhar" system). It replaces paper ledger books or separate apps like KhataBook.
+
+**What it shows:**
+- 3 summary cards at top
+- Search bar + "Show cleared" toggle + "New Entry" button
+- Customer list sorted by outstanding balance
+
+**Summary Cards:**
+| Card | Description |
+|---|---|
+| Total Outstanding | Sum of all unpaid balances across all customers |
+| Active Debtors | Count of customers with balance > 0 |
+| Cleared Accounts | Count of customers whose balance is fully paid |
+
+**Customer List:**
+- Each row shows: avatar (first letter, red = owes, green = cleared), name, phone, last activity date, outstanding balance badge
+- **Red badge** = customer owes money; **Green badge** = fully cleared; **Blue badge** = customer overpaid (advance)
+- Sorted by outstanding balance (highest first)
+- "Show cleared" toggle includes zero-balance customers in the list
+- Click any row → opens Customer Detail Dialog
+
+**Customer Detail Dialog:**
+- Customer name, phone, address
+- Large outstanding balance (red if owed, green if cleared)
+- Two action buttons:
+  - **Add Goods Credit** (red) — customer took goods, owes more money
+  - **Record Payment** (green) — customer paid back; disabled if balance is already 0
+- Full transaction history (newest first), each entry shows:
+  - Direction icon (↓ red = credit, ↑ green = payment)
+  - Amount
+  - Description (what items were taken, or payment note)
+  - Running balance after that entry
+  - Timestamp
+
+**New Entry button (main page):**
+Opens a dialog to add a credit entry for any customer:
+- Type toggle: Goods on Credit / Payment Received
+- Customer search (type name or phone — filters all customers live)
+- Amount (₹)
+- Description / items (e.g. "Rice 2kg, Oil 1L")
+- Remarks (optional)
+
+**Validation:**
+- Payment amount cannot exceed outstanding balance (server-side check returns a clear error)
+- Amount must be positive
+
+**Demo tip:** Add a credit entry for a customer → show the running balance in transaction history → record a partial payment → show balance decrease.
+
+---
+
 ### Screen 10 — Purchases (`/purchases`)
 
 **What it shows:**
@@ -530,6 +582,7 @@ Opens a detail dialog showing:
 | Register New Users | ✅ | ❌ |
 | Suppliers (view/add/edit) | ✅ | ✅ |
 | Purchases (view/create/receive) | ✅ | ✅ |
+| Khata Book (credit/payments) | ✅ | ✅ |
 
 ---
 
@@ -627,6 +680,20 @@ All responses follow this structure:
 | POST | `/purchases/:id/receive` | Mark as RECEIVED — increments stock |
 | POST | `/purchases/:id/cancel` | Mark as CANCELLED |
 
+### Khata Book (Credit Management)
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/credit-book/summary` | `{ totalOutstanding, debtorCount, clearedCount }` |
+| GET | `/credit-book?search=` | All customers with credit history + computed balance |
+| GET | `/credit-book/:customerId` | Customer detail + full transaction history with running balance |
+| POST | `/credit-book/:customerId/credit` | Add credit entry (customer took goods) |
+| POST | `/credit-book/:customerId/payment` | Record payment received — validates amount ≤ balance |
+
+**Transaction body:**
+```json
+{ "amount": 250.00, "description": "Rice 2kg, Oil 1L", "note": "optional remark" }
+```
+
 ---
 
 ## 8. Demo Script (Suggested Flow)
@@ -689,6 +756,15 @@ Follow this order for a smooth live demo — each step builds on the previous.
 - Show account info section
 - Show categories management — add/edit/delete categories
 
+### Step 10 — Khata Book (2 min)
+- Go to `/credit-book`
+- Show the 3 summary cards (Total Outstanding, Active Debtors, Cleared)
+- Click **New Entry** → select a customer → type "Goods on Credit" → ₹350 → description "Rice 2kg, Atta 5kg" → submit
+- Click the customer row → show Customer Detail Dialog
+- Point out: running balance after each entry, red ↓ for credit / green ↑ for payment
+- Click **Record Payment** → ₹200 → submit → show balance reduced from ₹350 to ₹150
+- Point out: "Record Payment" would be disabled once balance hits zero
+
 ---
 
 ## 9. File Structure
@@ -710,6 +786,7 @@ Invofy/
 │   │   ├── customers/             # Customer CRUD + search
 │   │   ├── prisma/                # PrismaService (singleton)
 │   │   ├── products/              # Product CRUD + search + low-stock
+│   │   ├── credit-book/           # Khata Book — credit/payment tracking, balance computation
 │   │   ├── purchases/             # Purchase orders — create, receive, cancel
 │   │   ├── reports/               # Sales, revenue, inventory reports
 │   │   ├── returns/               # Returns — create, validate, restock, RET number
@@ -744,6 +821,7 @@ Invofy/
 │       │   ├── Invoices.tsx
 │       │   ├── Suppliers.tsx
 │       │   ├── Purchases.tsx
+│       │   ├── CreditBook.tsx     # Khata Book — summary cards, customer list, detail dialog, add/payment forms
 │       │   ├── Reports.tsx
 │       │   └── Settings.tsx
 │       ├── services/              # Axios API calls per module
@@ -779,6 +857,9 @@ Invofy/
 ---
 
 ## 10. Changelog
+
+### 2026-05-07
+- **Khata Book** (`/credit-book`) — local mart credit/debt tracker replacing paper ledger books; new `CreditTransaction` Prisma model with `CREDIT` / `PAYMENT` enum; new `credit-book` NestJS module with 5 endpoints; balance is computed dynamically from transactions (no denormalisation); payment validation rejects amounts exceeding outstanding balance; frontend page shows 3 summary cards, customer list with colour-coded balance badges, customer detail dialog with running-balance transaction timeline, add-credit and record-payment forms, and a "New Entry" dialog with live customer search; "Show cleared" toggle shows zero-balance customers; DB migration `20260507101421_add_credit_book`
 
 ### 2026-05-05
 - **Suppliers screen** (`/suppliers`) — full CRUD with search, GST number, active/inactive status, purchase count badge; deactivates instead of deletes if supplier has existing POs
