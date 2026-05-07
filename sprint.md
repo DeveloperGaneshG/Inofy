@@ -1,7 +1,7 @@
 # Invofy — Mart Billing Software · Complete Project Guide
 
 > **Stack:** NestJS + Prisma + PostgreSQL (backend) · React + TypeScript + Vite + Tailwind (frontend)
-> **Last Updated:** 2026-05-07
+> **Last Updated:** 2026-05-07 (r2)
 
 ---
 
@@ -859,6 +859,7 @@ Invofy/
 ## 10. Changelog
 
 ### 2026-05-07
+- **Barcode label printing** — `🏷️` button on every product row in the Products table opens a "Print Label" dialog with a copies input (1–100); "Print All Labels" button in the page header prints one label per product currently visible (respects search + category filter); labels are generated as a print popup (same pattern as thermal receipt) via `jsbarcode` (CODE128 format, falls back to SKU if no barcode); each 60mm × 42mm label shows store name, barcode SVG + number, product name, SKU, MRP (strikethrough if discounted), selling price, discount % badge, and GST rate; labels flow 3-per-row on A4, print-ready with dashed cut lines; `printLabels.ts` utility is reusable for any future label printing need
 - **Khata Book** (`/credit-book`) — local mart credit/debt tracker replacing paper ledger books; new `CreditTransaction` Prisma model with `CREDIT` / `PAYMENT` enum; new `credit-book` NestJS module with 5 endpoints; balance is computed dynamically from transactions (no denormalisation); payment validation rejects amounts exceeding outstanding balance; frontend page shows 3 summary cards, customer list with colour-coded balance badges, customer detail dialog with running-balance transaction timeline, add-credit and record-payment forms, and a "New Entry" dialog with live customer search; "Show cleared" toggle shows zero-balance customers; DB migration `20260507101421_add_credit_book`
 
 ### 2026-05-05

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, AlertTriangle } from 'lucide-react';
+import { Plus, Search, AlertTriangle, Tag } from 'lucide-react';
 import { Product, Category } from '@/types';
 import { productService } from '@/services/productService';
 import { categoryService } from '@/services/categoryService';
@@ -7,8 +7,11 @@ import ProductTable from '@/components/products/ProductTable';
 import ProductForm from '@/components/products/ProductForm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { printProductLabels } from '@/lib/printLabels';
 
 export default function Products() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -18,6 +21,8 @@ export default function Products() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
+  const [labelTarget, setLabelTarget] = useState<Product | null>(null);
+  const [labelCopies, setLabelCopies] = useState(1);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,6 +49,17 @@ export default function Products() {
     } catch {}
   };
 
+  const handlePrintLabel = (product: Product) => {
+    setLabelCopies(1);
+    setLabelTarget(product);
+  };
+
+  const handlePrintConfirm = () => {
+    if (!labelTarget) return;
+    printProductLabels([labelTarget], labelCopies);
+    setLabelTarget(null);
+  };
+
   const filtered = products.filter((p) => {
     const matchSearch =
       !search ||
@@ -64,9 +80,21 @@ export default function Products() {
           <h1 className="text-2xl font-bold">Products</h1>
           <p className="text-sm text-muted-foreground">{products.length} total products</p>
         </div>
-        <Button onClick={() => { setEditingProduct(null); setFormOpen(true); }}>
-          <Plus className="h-4 w-4" /> Add Product
-        </Button>
+        <div className="flex gap-2">
+          {filtered.length > 0 && (
+            <Button
+              variant="outline"
+              onClick={() => printProductLabels(filtered, 1)}
+              title="Print one label per product currently shown"
+            >
+              <Tag className="h-4 w-4" />
+              Print All Labels
+            </Button>
+          )}
+          <Button onClick={() => { setEditingProduct(null); setFormOpen(true); }}>
+            <Plus className="h-4 w-4" /> Add Product
+          </Button>
+        </div>
       </div>
 
       {/* Alert badges */}
@@ -115,6 +143,7 @@ export default function Products() {
             products={filtered}
             onEdit={(p) => { setEditingProduct(p); setFormOpen(true); }}
             onDelete={setDeleteTarget}
+            onPrintLabel={handlePrintLabel}
           />
         )}
       </div>
@@ -125,6 +154,48 @@ export default function Products() {
         onClose={() => setFormOpen(false)}
         onSaved={loadData}
       />
+
+      {/* Print Label Dialog */}
+      <Dialog open={!!labelTarget} onOpenChange={(o) => { if (!o) setLabelTarget(null); }}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Tag className="h-5 w-5 text-primary" />
+              Print Barcode Label
+            </DialogTitle>
+          </DialogHeader>
+          {labelTarget && (
+            <div className="space-y-4">
+              <div className="rounded-lg bg-muted/50 px-3 py-2 text-sm">
+                <p className="font-medium">{labelTarget.name}</p>
+                <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                  {labelTarget.barcode || labelTarget.sku}
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Number of copies</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={labelCopies}
+                  onChange={(e) => setLabelCopies(Math.max(1, Math.min(100, Number(e.target.value))))}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Useful for labelling new stock — e.g. 50 copies for 50 units received
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLabelTarget(null)}>Cancel</Button>
+            <Button onClick={handlePrintConfirm}>
+              <Tag className="h-4 w-4" />
+              Print {labelCopies > 1 ? `${labelCopies} Labels` : 'Label'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation */}
       {deleteTarget && (

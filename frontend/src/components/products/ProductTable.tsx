@@ -1,4 +1,4 @@
-import { Edit2, Trash2, AlertTriangle } from 'lucide-react';
+import { Edit2, Trash2, AlertTriangle, Tag } from 'lucide-react';
 import { Product } from '@/types';
 import { formatCurrency, formatDateShort } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -9,9 +9,10 @@ interface Props {
   products: Product[];
   onEdit: (product: Product) => void;
   onDelete: (product: Product) => void;
+  onPrintLabel: (product: Product) => void;
 }
 
-export default function ProductTable({ products, onEdit, onDelete }: Props) {
+export default function ProductTable({ products, onEdit, onDelete, onPrintLabel }: Props) {
   return (
     <Table>
       <TableHeader>
@@ -85,6 +86,9 @@ export default function ProductTable({ products, onEdit, onDelete }: Props) {
               <TableCell className="text-xs text-muted-foreground">{formatDateShort(product.createdAt)}</TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-1">
+                  <Button size="icon" variant="ghost" title="Print barcode label" onClick={() => onPrintLabel(product)}>
+                    <Tag className="h-4 w-4" />
+                  </Button>
                   <Button size="icon" variant="ghost" onClick={() => onEdit(product)}>
                     <Edit2 className="h-4 w-4" />
                   </Button>
