@@ -17,6 +17,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 
+const UNIT_TYPES = ['PCS', 'KG', 'G', 'L', 'ML', 'BOX', 'DOZEN', 'PACK'];
+
 const schema = z.object({
   name: z.string().min(1, 'Name is required'),
   sku: z.string().min(1, 'SKU is required'),
@@ -25,11 +27,13 @@ const schema = z.object({
   price: z.coerce.number().min(0.01, 'Price must be > 0'),
   costPrice: z.coerce.number().min(0, 'Cost price required'),
   gstRate: z.coerce.number().default(18),
-  stock: z.coerce.number().int().min(0, 'Stock must be ≥ 0'),
+  stock: z.coerce.number().min(0, 'Stock must be ≥ 0'),
   lowStockAlert: z.coerce.number().int().min(1).default(10),
   categoryId: z.string().min(1, 'Category is required'),
   imageUrl: z.string().url().optional().or(z.literal('')),
   isActive: z.boolean().default(true),
+  unitType: z.string().default('PCS'),
+  allowDecimalQty: z.boolean().default(false),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -54,7 +58,7 @@ export default function ProductForm({ open, product, onClose, onSaved }: Props) 
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { lowStockAlert: 10, isActive: true, stock: 0, gstRate: 18 },
+    defaultValues: { lowStockAlert: 10, isActive: true, stock: 0, gstRate: 18, unitType: 'PCS', allowDecimalQty: false },
   });
 
   useEffect(() => {
@@ -79,8 +83,10 @@ export default function ProductForm({ open, product, onClose, onSaved }: Props) 
               categoryId: product.categoryId,
               imageUrl: product.imageUrl || '',
               isActive: product.isActive,
+              unitType: product.unitType || 'PCS',
+              allowDecimalQty: product.allowDecimalQty ?? false,
             }
-          : { lowStockAlert: 10, isActive: true, stock: 0 },
+          : { lowStockAlert: 10, isActive: true, stock: 0, unitType: 'PCS', allowDecimalQty: false },
       );
     }
   }, [open, product, reset]);
@@ -143,7 +149,7 @@ export default function ProductForm({ open, product, onClose, onSaved }: Props) 
             </div>
             <div className="space-y-1">
               <Label>Stock *</Label>
-              <Input type="number" {...register('stock')} placeholder="0" />
+              <Input type="number" step="0.001" {...register('stock')} placeholder="0" />
               {errors.stock && <p className="text-xs text-destructive">{errors.stock.message}</p>}
             </div>
             <div className="space-y-1">
@@ -178,7 +184,22 @@ export default function ProductForm({ open, product, onClose, onSaved }: Props) 
               <Label>Image URL</Label>
               <Input {...register('imageUrl')} placeholder="https://..." />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="space-y-1">
+              <Label>Unit Type</Label>
+              <select
+                {...register('unitType')}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                {UNIT_TYPES.map((u) => (
+                  <option key={u} value={u}>{u}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2 pt-2">
+              <input type="checkbox" id="allowDecimalQty" {...register('allowDecimalQty')} className="h-4 w-4" />
+              <Label htmlFor="allowDecimalQty">Allow decimal qty (kg/g/L)</Label>
+            </div>
+            <div className="flex items-center gap-2 pt-2">
               <input type="checkbox" id="isActive" {...register('isActive')} className="h-4 w-4" />
               <Label htmlFor="isActive">Active</Label>
             </div>

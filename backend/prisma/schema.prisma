@@ -11,6 +11,7 @@ datasource db {
 
 enum Role {
   ADMIN
+  MANAGER
   CASHIER
 }
 
@@ -49,6 +50,19 @@ enum ReturnType {
   EXCHANGE
 }
 
+enum AdjustmentType {
+  ADD
+  REMOVE
+}
+
+enum AdjustmentReason {
+  DAMAGED
+  THEFT
+  COUNT_MISMATCH
+  OPENING_STOCK
+  OTHER
+}
+
 // ─── User ────────────────────────────────────────────────────────────────────
 
 model User {
@@ -60,9 +74,11 @@ model User {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
 
-  bills     Bill[]
-  purchases Purchase[]
-  returns   Return[]
+  bills                Bill[]
+  purchases            Purchase[]
+  returns              Return[]
+  stockWriteOffs       StockWriteOff[]
+  inventoryAdjustments InventoryAdjustment[]
 
   @@map("users")
 }
@@ -82,26 +98,30 @@ model Category {
 // ─── Product ─────────────────────────────────────────────────────────────────
 
 model Product {
-  id            String   @id @default(uuid())
-  name          String
-  sku           String   @unique
-  barcode       String?  @unique
-  mrp           Decimal? @db.Decimal(10, 2)
-  price         Decimal  @db.Decimal(10, 2)
-  costPrice     Decimal  @db.Decimal(10, 2)
-  gstRate       Decimal  @default(18) @db.Decimal(5, 2)
-  stock         Int      @default(0)
-  lowStockAlert Int      @default(10)
-  categoryId    String
-  imageUrl      String?
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
+  id              String   @id @default(uuid())
+  name            String
+  sku             String   @unique
+  barcode         String?  @unique
+  mrp             Decimal? @db.Decimal(10, 2)
+  price           Decimal  @db.Decimal(10, 2)
+  costPrice       Decimal  @db.Decimal(10, 2)
+  gstRate         Decimal  @default(18) @db.Decimal(5, 2)
+  stock           Float    @default(0)
+  lowStockAlert   Int      @default(10)
+  unitType        String   @default("PCS")
+  allowDecimalQty Boolean  @default(false)
+  categoryId      String
+  imageUrl        String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
 
-  category       Category        @relation(fields: [categoryId], references: [id])
-  billItems      BillItem[]
-  purchaseItems  PurchaseItem[]
-  stockMovements StockMovement[]
-  returnItems    ReturnItem[]
+  category             Category              @relation(fields: [categoryId], references: [id])
+  billItems            BillItem[]
+  purchaseItems        PurchaseItem[]
+  stockMovements       StockMovement[]
+  returnItems          ReturnItem[]
+  stockWriteOffs       StockWriteOff[]
+  inventoryAdjustments InventoryAdjustment[]
 
   @@map("products")
 }
@@ -152,7 +172,7 @@ model BillItem {
   id         String  @id @default(uuid())
   billId     String
   productId  String
-  quantity   Int
+  quantity   Float
   unitPrice  Decimal @db.Decimal(10, 2)
   totalPrice Decimal @db.Decimal(10, 2)
 
@@ -206,16 +226,34 @@ model PurchaseItem {
   id          String    @id @default(uuid())
   purchaseId  String
   productId   String
-  quantity    Int
+  quantity    Float
   costPrice   Decimal   @db.Decimal(10, 2)
   totalCost   Decimal   @db.Decimal(10, 2)
   batchNumber String?
   expiryDate  DateTime?
 
-  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
-  product  Product  @relation(fields: [productId], references: [id])
+  purchase       Purchase        @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  product        Product         @relation(fields: [productId], references: [id])
+  stockWriteOffs StockWriteOff[]
 
   @@map("purchase_items")
+}
+
+// ─── StockWriteOff ───────────────────────────────────────────────────────────
+
+model StockWriteOff {
+  id                 String       @id @default(cuid())
+  purchaseItemId     String
+  purchaseItem       PurchaseItem @relation(fields: [purchaseItemId], references: [id])
+  productId          String
+  product            Product      @relation(fields: [productId], references: [id])
+  quantityWrittenOff Float
+  reason             String?
+  writtenOffBy       String
+  user               User         @relation(fields: [writtenOffBy], references: [id])
+  createdAt          DateTime     @default(now())
+
+  @@map("stock_write_offs")
 }
 
 // ─── StockMovement ───────────────────────────────────────────────────────────
@@ -224,7 +262,7 @@ model StockMovement {
   id            String            @id @default(uuid())
   productId     String
   type          StockMovementType
-  quantity      Int
+  quantity      Float
   referenceId   String?
   referenceType String?
   note          String?
@@ -234,6 +272,24 @@ model StockMovement {
   product Product @relation(fields: [productId], references: [id])
 
   @@map("stock_movements")
+}
+
+// ─── InventoryAdjustment ─────────────────────────────────────────────────────
+
+model InventoryAdjustment {
+  id             String           @id @default(uuid())
+  productId      String
+  adjustmentType AdjustmentType
+  reason         AdjustmentReason
+  quantity       Float
+  notes          String?
+  userId         String
+  createdAt      DateTime         @default(now())
+
+  product Product @relation(fields: [productId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@map("inventory_adjustments")
 }
 
 // ─── Return ──────────────────────────────────────────────────────────────────
@@ -262,7 +318,7 @@ model ReturnItem {
   returnId   String
   billItemId String
   productId  String
-  quantity   Int
+  quantity   Float
   unitPrice  Decimal @db.Decimal(10, 2)
   totalPrice Decimal @db.Decimal(10, 2)
 
@@ -287,4 +343,20 @@ model CreditTransaction {
   customer Customer @relation(fields: [customerId], references: [id])
 
   @@map("credit_transactions")
+}
+
+// ─── AuditLog ────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String
+  entity    String
+  entityId  String?
+  before    Json?
+  after     Json?
+  userId    String?
+  userName  String?
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
 }

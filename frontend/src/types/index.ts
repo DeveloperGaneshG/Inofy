@@ -1,4 +1,4 @@
-export type Role = 'ADMIN' | 'CASHIER';
+export type Role = 'ADMIN' | 'MANAGER' | 'CASHIER';
 export type PaymentMethod = 'CASH' | 'CARD' | 'UPI';
 export type BillStatus = 'PENDING' | 'PAID' | 'CANCELLED';
 export type PurchaseStatus = 'DRAFT' | 'RECEIVED' | 'CANCELLED';
@@ -31,6 +31,8 @@ export interface Product {
   gstRate: number;
   stock: number;
   lowStockAlert: number;
+  unitType: string;
+  allowDecimalQty: boolean;
   categoryId: string;
   category: Category;
   imageUrl?: string;
@@ -122,7 +124,8 @@ export interface CartItem {
   product: Product;
   quantity: number;
   unitPrice: number;
-  totalPrice: number;
+  discount: number; // percentage 0–100
+  totalPrice: number; // quantity * unitPrice * (1 - discount/100)
 }
 
 export interface DailySalesReport {
@@ -248,4 +251,32 @@ export interface InventoryReport {
   products: Product[];
   lowStockProducts: Product[];
   outOfStockProducts: Product[];
+}
+
+export type AdjustmentType = 'ADD' | 'REMOVE';
+export type AdjustmentReason = 'DAMAGED' | 'THEFT' | 'COUNT_MISMATCH' | 'OPENING_STOCK' | 'OTHER';
+
+export interface InventoryAdjustment {
+  id: string;
+  productId: string;
+  product: Pick<Product, 'id' | 'name' | 'sku' | 'unitType'>;
+  adjustmentType: AdjustmentType;
+  reason: AdjustmentReason;
+  quantity: number;
+  notes?: string;
+  userId: string;
+  user: Pick<User, 'id' | 'name'>;
+  createdAt: string;
+}
+
+export interface AuditLog {
+  id: string;
+  action: string;
+  entity: string;
+  entityId?: string;
+  before?: Record<string, any>;
+  after?: Record<string, any>;
+  userId?: string;
+  userName?: string;
+  createdAt: string;
 }

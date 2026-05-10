@@ -117,6 +117,18 @@ export class BillsService {
         });
       }
 
+      const user = await tx.user.findUnique({ where: { id: userId }, select: { name: true } });
+      await tx.auditLog.create({
+        data: {
+          action: 'CREATE',
+          entity: 'Bill',
+          entityId: bill.id,
+          after: { billNumber: bill.billNumber, totalAmount: Number(bill.totalAmount), paymentMethod },
+          userId,
+          userName: user?.name,
+        },
+      });
+
       return bill;
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
@@ -184,6 +196,15 @@ export class BillsService {
     if (dto.status === BillStatus.CANCELLED) {
       await this.prisma.$transaction(async (tx) => {
         await tx.bill.update({ where: { id }, data: { status: BillStatus.CANCELLED } });
+        await tx.auditLog.create({
+          data: {
+            action: 'CANCEL',
+            entity: 'Bill',
+            entityId: id,
+            before: { status: bill.status },
+            after: { status: BillStatus.CANCELLED },
+          },
+        });
 
         for (const item of bill.items) {
           await tx.product.update({

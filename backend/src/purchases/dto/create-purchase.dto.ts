@@ -16,6 +16,7 @@ export class PurchaseItemDto {
 
   @IsNumber()
   @IsPositive()
+  @Type(() => Number)
   quantity: number;
 
   @IsNumber()

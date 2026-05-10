@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -12,9 +13,13 @@ import {
   Building2,
   Truck,
   BookOpen,
+  CalendarX2,
+  ClipboardList,
+  Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
+import { expiryAlerts } from '@/services/expiry.service';
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -26,11 +31,21 @@ const navItems = [
   { to: '/credit-book', label: 'Khata Book', icon: BookOpen },
   { to: '/invoices', label: 'Invoices', icon: FileText },
   { to: '/reports', label: 'Reports', icon: BarChart3 },
+  { to: '/expiry', label: 'Expiry tracker', icon: CalendarX2 },
+  { to: '/inventory-adjustments', label: 'Adjustments', icon: ClipboardList },
+  { to: '/audit-logs', label: 'Audit Logs', icon: Shield },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];
 
 export default function Sidebar() {
   const { user, logout } = useAuthStore();
+  const [expiryAlertCount, setExpiryAlertCount] = useState(0);
+
+  useEffect(() => {
+    expiryAlerts()
+      .then((d) => setExpiryAlertCount(d.total))
+      .catch(() => {});
+  }, []);
 
   return (
     <aside className="flex h-screen w-60 flex-col border-r bg-white">
@@ -60,7 +75,12 @@ export default function Sidebar() {
                   )
                 }
               >
-                <Icon className="h-4 w-4" />
+                <span className="relative">
+                  <Icon className="h-4 w-4" />
+                  {to === '/expiry' && expiryAlertCount > 0 && (
+                    <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-red-500" />
+                  )}
+                </span>
                 {label}
               </NavLink>
             </li>

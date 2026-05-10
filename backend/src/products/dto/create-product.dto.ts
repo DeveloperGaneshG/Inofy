@@ -59,4 +59,12 @@ export class CreateProductDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
+
+  @IsString()
+  @IsOptional()
+  unitType?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  allowDecimalQty?: boolean;
 }

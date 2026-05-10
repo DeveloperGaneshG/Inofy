@@ -12,6 +12,9 @@ import { SuppliersModule } from './suppliers/suppliers.module';
 import { PurchasesModule } from './purchases/purchases.module';
 import { ReturnsModule } from './returns/returns.module';
 import { CreditBookModule } from './credit-book/credit-book.module';
+import { ExpiryModule } from './expiry/expiry.module';
+import { InventoryAdjustmentsModule } from './inventory-adjustments/inventory-adjustments.module';
+import { AuditModule } from './audit/audit.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -33,6 +36,9 @@ import { AppService } from './app.service';
     PurchasesModule,
     ReturnsModule,
     CreditBookModule,
+    ExpiryModule,
+    InventoryAdjustmentsModule,
+    AuditModule,
   ],
   controllers: [AppController],
   providers: [AppService],

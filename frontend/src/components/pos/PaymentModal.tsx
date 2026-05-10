@@ -69,7 +69,7 @@ export default function PaymentModal({ open, onClose, customer, onSuccess }: Pro
         items: items.map((i) => ({
           productId: i.product.id,
           quantity: i.quantity,
-          unitPrice: i.unitPrice,
+          unitPrice: i.discount > 0 ? i.unitPrice * (1 - i.discount / 100) : i.unitPrice,
         })),
       });
       clearCart();

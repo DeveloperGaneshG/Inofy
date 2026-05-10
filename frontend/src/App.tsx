@@ -12,6 +12,9 @@ import Settings from '@/pages/Settings';
 import Suppliers from '@/pages/Suppliers';
 import Purchases from '@/pages/Purchases';
 import CreditBook from '@/pages/CreditBook';
+import ExpiryTracker from '@/pages/ExpiryTracker';
+import InventoryAdjustments from '@/pages/InventoryAdjustments';
+import AuditLogs from '@/pages/AuditLogs';
 
 export default function App() {
   return (
@@ -29,6 +32,9 @@ export default function App() {
             <Route path="/credit-book" element={<CreditBook />} />
             <Route path="/invoices" element={<Invoices />} />
             <Route path="/reports" element={<Reports />} />
+            <Route path="/expiry" element={<ExpiryTracker />} />
+            <Route path="/inventory-adjustments" element={<InventoryAdjustments />} />
+            <Route path="/audit-logs" element={<AuditLogs />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
         </Route>

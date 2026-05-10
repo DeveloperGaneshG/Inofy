@@ -53,15 +53,26 @@ export class ProductsService {
     return product;
   }
 
-  async update(id: string, updateProductDto: UpdateProductDto) {
+  async update(id: string, updateProductDto: UpdateProductDto, userId?: string) {
     try {
+      const before = await this.prisma.product.findUnique({ where: { id } });
       const product = await this.prisma.product.update({
         where: { id },
         data: updateProductDto,
-        include: {
-          category: true,
-        },
+        include: { category: true },
       });
+      if (before && (before.price !== product.price || before.costPrice !== product.costPrice)) {
+        await this.prisma.auditLog.create({
+          data: {
+            action: 'PRICE_UPDATE',
+            entity: 'Product',
+            entityId: id,
+            before: { price: Number(before.price), costPrice: Number(before.costPrice) },
+            after: { price: Number(product.price), costPrice: Number(product.costPrice) },
+            userId,
+          },
+        });
+      }
       return product;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {

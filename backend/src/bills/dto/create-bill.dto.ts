@@ -7,7 +7,7 @@ export class CreateBillItemDto {
   productId: string;
 
   @IsNumber()
-  @Min(1)
+  @Min(0.001)
   quantity: number;
 
   @IsNumber()
