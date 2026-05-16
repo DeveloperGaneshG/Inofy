@@ -22,6 +22,7 @@ async function bootstrap() {
 
   const allowedOrigins = [
     /^http:\/\/localhost(:\d+)?$/,
+    /^https:\/\/inofy-[\w-]+\.vercel\.app$/,
     'https://inofy-drab.vercel.app',
     process.env.FRONTEND_URL,
   ].filter(Boolean);
