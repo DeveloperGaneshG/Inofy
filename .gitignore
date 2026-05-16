@@ -3,3 +3,11 @@ dist/
 *.tsbuildinfo
 .claude/
 .vite/
+
+# Environment files
+.env
+.env.local
+.env.production
+frontend/.env*
+backend/.env
+!backend/.env.example

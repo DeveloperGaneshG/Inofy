@@ -8,8 +8,14 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // ── CORS ─────────────────────────────────────────────────────────────────
+  const allowedOrigins = [
+    /^http:\/\/localhost(:\d+)?$/,
+    'https://inofy-drab.vercel.app',
+    process.env.FRONTEND_URL,
+  ].filter(Boolean);
+
   app.enableCors({
-    origin: /^http:\/\/localhost(:\d+)?$/,
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
