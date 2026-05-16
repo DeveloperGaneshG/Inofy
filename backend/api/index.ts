@@ -52,6 +52,11 @@ async function bootstrap() {
 }
 
 export default async function handler(req: Request, res: Response) {
-  await bootstrap();
-  expressServer(req, res);
+  try {
+    await bootstrap();
+    expressServer(req, res);
+  } catch (err) {
+    console.error('Bootstrap error:', err);
+    res.status(500).json({ error: 'Server failed to start', detail: String(err) });
+  }
 }
