@@ -20,7 +20,7 @@ export class UserEntity {
     this.id = user.id;
     this.name = user.name;
     this.email = user.email;
-    this.role = user.role;
+    this.role = user.role as unknown as Role;
     this.isActive = user.isActive;
     this.createdAt = user.createdAt;
   }
