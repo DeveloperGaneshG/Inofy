@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { WriteOffDto } from './expiry.dto';
-import { PurchaseStatus } from '@prisma/client';
+import { PurchaseStatus } from '../common/enums';
 
 @Injectable()
 export class ExpiryService {

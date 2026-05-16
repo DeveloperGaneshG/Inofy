@@ -15,7 +15,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { PurchaseStatus, Role } from '@prisma/client';
+import { PurchaseStatus, Role } from '../common/enums';
 
 @Controller('purchases')
 @UseGuards(JwtAuthGuard, RolesGuard)

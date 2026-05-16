@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAdjustmentDto } from './dto/create-adjustment.dto';
-import { AdjustmentType, StockMovementType } from '@prisma/client';
+import { AdjustmentType, StockMovementType } from '../common/enums';
 
 @Injectable()
 export class InventoryAdjustmentsService {

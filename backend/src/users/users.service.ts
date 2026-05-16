@@ -5,7 +5,8 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
-import { Role, User } from '@prisma/client';
+import { User } from '@prisma/client';
+import { Role } from '../common/enums';
 
 export class UserEntity {
   id: string;

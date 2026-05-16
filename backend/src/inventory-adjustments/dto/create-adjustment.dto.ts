@@ -1,6 +1,6 @@
 import { IsString, IsOptional, IsEnum, IsNumber, IsPositive, IsUUID } from 'class-validator';
 import { Type } from 'class-transformer';
-import { AdjustmentType, AdjustmentReason } from '@prisma/client';
+import { AdjustmentType, AdjustmentReason } from '../../common/enums';
 
 export class CreateAdjustmentDto {
   @IsUUID()

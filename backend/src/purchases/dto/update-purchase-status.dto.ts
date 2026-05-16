@@ -1,5 +1,5 @@
 import { IsEnum } from 'class-validator';
-import { PurchaseStatus } from '@prisma/client';
+import { PurchaseStatus } from '../../common/enums';
 
 export class UpdatePurchaseStatusDto {
   @IsEnum(PurchaseStatus)

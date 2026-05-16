@@ -1,6 +1,6 @@
 import { IsString, IsOptional, IsEnum, IsNumber, IsArray, ValidateNested, Min, IsUUID, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
-import { PaymentMethod } from '@prisma/client';
+import { PaymentMethod } from '../../common/enums';
 
 export class CreateBillItemDto {
   @IsUUID()

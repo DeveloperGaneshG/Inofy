@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateReturnDto } from './dto/create-return.dto';
-import { StockMovementType } from '@prisma/client';
+import { StockMovementType } from '../common/enums';
 
 @Injectable()
 export class ReturnsService {

@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AddTransactionDto } from './dto/add-transaction.dto';
-import { CreditTransactionType } from '@prisma/client';
+import { CreditTransactionType } from '../common/enums';
 
 @Injectable()
 export class CreditBookService {

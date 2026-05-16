@@ -2,7 +2,8 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBillDto } from './dto/create-bill.dto';
 import { UpdateBillStatusDto } from './dto/update-bill-status.dto';
-import { BillStatus, Prisma, StockMovementType } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import { BillStatus, StockMovementType } from '../common/enums';
 
 @Injectable()
 export class BillsService {

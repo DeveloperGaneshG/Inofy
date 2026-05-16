@@ -1,6 +1,6 @@
 import { IsUUID, IsEnum, IsOptional, IsString, IsArray, ValidateNested, IsNumber, Min } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ReturnType } from '@prisma/client';
+import { ReturnType } from '../../common/enums';
 
 export class ReturnItemDto {
   @IsUUID()

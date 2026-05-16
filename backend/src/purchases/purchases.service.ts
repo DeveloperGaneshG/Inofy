@@ -5,7 +5,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePurchaseDto } from './dto/create-purchase.dto';
-import { Prisma, PurchaseStatus, StockMovementType } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import { PurchaseStatus, StockMovementType } from '../common/enums';
 
 @Injectable()
 export class PurchasesService {
