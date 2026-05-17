@@ -95,8 +95,6 @@ export class PrintService {
     const LEFT    = [0x1b, 0x61, 0x00];
     const BOLD_ON = [0x1b, 0x45, 0x01];
     const BOLD_OFF= [0x1b, 0x45, 0x00];
-    const DBL_H   = [0x1d, 0x21, 0x01]; // double-height only (no width change)
-    const NORMAL  = [0x1d, 0x21, 0x00];
     const CUT     = [0x1d, 0x56, 0x41, 0x50]; // Feed 80 dots (~10mm) then full cut
 
     const parts: Buffer[] = [];
@@ -105,16 +103,12 @@ export class PrintService {
     const dash = () => add(this.line('------------------------------------------'));
 
     add(this.esc(INIT));
-    add(this.esc([0x1d, 0x4c, 0x00, 0x00])); // GS L 0 0 — left margin = 0 dots
-    add(this.esc([0x1d, 0x57, 0x40, 0x02])); // GS W 576 — print area = full 72mm (576 dots @ 203dpi)
-    add(this.esc([0x1b, 0x4d, 0x00]));        // ESC M 0 — font A
-    add(this.esc([0x1d, 0x28, 0x4b, 0x02, 0x00, 0x30, 0x08])); // GS ( K fn=48 pm=8 — max density
 
     // ── Store header (centered) ──────────────────────────
     add(this.esc(CENTER));
-    add(this.esc(BOLD_ON), this.esc(DBL_H));
+    add(this.esc(BOLD_ON));
     add(this.line(dto.storeName.substring(0, 42)));
-    add(this.esc(NORMAL), this.esc(BOLD_OFF));
+    add(this.esc(BOLD_OFF));
     add(this.line(dto.storeAddress.substring(0, 42)));
     add(this.line(`Tel: ${dto.storePhone}`.substring(0, 42)));
     if (dto.storeGstin) add(this.line(`GSTIN: ${dto.storeGstin}`.substring(0, 42)));
