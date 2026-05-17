@@ -166,9 +166,10 @@ export class PrintService {
     add(this.esc([0x1d, 0x48, 0x02]));        // GS H 2 — HRI text printed below barcode
     add(this.esc([0x1d, 0x68, 0x50]));        // GS h 80 — barcode height 80 dots
     add(this.esc([0x1d, 0x77, 0x02]));        // GS w 2 — bar width (narrow, fits 80mm)
-    // New format GS k 0x49 n [data]: {B selects Code128 subset B (A-Z, 0-9, hyphens)
-    const barcodePayload = Buffer.from('{B' + dto.billNumber, 'ascii');
-    add(Buffer.from([0x1d, 0x6b, 0x49, barcodePayload.length]), barcodePayload);
+    // CODE39 old format (GS k 4 ... NUL): universally supported, NUL-terminated.
+    // Bill numbers (A-Z, 0-9, hyphen) are all valid CODE39 characters.
+    const barcodeData = Buffer.from(dto.billNumber, 'ascii');
+    add(Buffer.from([0x1d, 0x6b, 0x04]), barcodeData, Buffer.from([0x00]));
     add(this.line(''));
 
     // ── Footer ──────────────────────────────────────────
