@@ -6,13 +6,13 @@ export interface StoreSettings {
 }
 
 const DEFAULTS: StoreSettings = {
-  name: 'Invofy Mart',
-  address: '123 Market St, City - 560001',
-  phone: '+91 98765 43210',
+  name: "Chandu's Mart",
+  address: 'Opp. Hanuman Temple, Balarampuram',
+  phone: '+91 9505821254',
   gstin: '',
 };
 
-const KEY = 'invofy_store_settings';
+const KEY = 'invofy_store_v2';
 
 export function getStoreSettings(): StoreSettings {
   try {
