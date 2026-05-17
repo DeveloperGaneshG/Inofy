@@ -96,7 +96,7 @@ export class PrintService {
     const BOLD_OFF= [0x1b, 0x45, 0x00];
     const DBL_H   = [0x1d, 0x21, 0x01]; // double-height only (no width change)
     const NORMAL  = [0x1d, 0x21, 0x00];
-    const CUT     = [0x1d, 0x56, 0x42, 0x10];
+    const CUT     = [0x1d, 0x56, 0x41, 0x50]; // Feed 80 dots (~10mm) then full cut
 
     const parts: Buffer[] = [];
     const add = (...b: Buffer[]) => parts.push(...b);
@@ -166,9 +166,9 @@ export class PrintService {
     add(this.esc([0x1d, 0x48, 0x02]));        // GS H 2 — HRI text printed below barcode
     add(this.esc([0x1d, 0x68, 0x50]));        // GS h 80 — barcode height 80 dots
     add(this.esc([0x1d, 0x77, 0x02]));        // GS w 2 — bar width (narrow, fits 80mm)
-    // {B = select Code 128B subset (handles A-Z, 0-9, hyphens in bill numbers)
-    const barcodeData = Buffer.from('{B' + dto.billNumber, 'ascii');
-    add(Buffer.from([0x1d, 0x6b, 0x08]), barcodeData, Buffer.from([0x00])); // GS k 8 — Code128
+    // New format GS k 0x49 n [data]: {B selects Code128 subset B (A-Z, 0-9, hyphens)
+    const barcodePayload = Buffer.from('{B' + dto.billNumber, 'ascii');
+    add(Buffer.from([0x1d, 0x6b, 0x49, barcodePayload.length]), barcodePayload);
     add(this.line(''));
 
     // ── Footer ──────────────────────────────────────────
@@ -176,7 +176,7 @@ export class PrintService {
     add(this.line(''));
     add(this.esc(BOLD_ON), this.line('** Thank you for shopping! **'), this.esc(BOLD_OFF));
     add(this.line('Please visit us again'));
-    add(this.line(''), this.line(''), this.line(''));
+    add(this.line(''), this.line(''), this.line(''), this.line(''), this.line(''));
     add(this.esc(CUT));
 
     return Buffer.concat(parts);
