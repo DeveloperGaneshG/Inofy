@@ -8,6 +8,7 @@ export enum PaymentMethod {
   CASH = 'CASH',
   CARD = 'CARD',
   UPI = 'UPI',
+  CREDIT = 'CREDIT',
 }
 
 export enum BillStatus {

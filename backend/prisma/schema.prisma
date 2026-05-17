@@ -20,6 +20,7 @@ enum PaymentMethod {
   CASH
   CARD
   UPI
+  CREDIT
 }
 
 enum BillStatus {

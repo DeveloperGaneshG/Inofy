@@ -1,8 +1,10 @@
-import { useState, useMemo } from 'react';
-import { CreditCard, Banknote, Smartphone, Loader2, Star } from 'lucide-react';
-import { Customer, PaymentMethod } from '@/types';
+import { useState, useMemo, useEffect } from 'react';
+import { CreditCard, Banknote, Smartphone, Loader2, Star, BookOpen, UserSearch, X } from 'lucide-react';
+import { Bill, Customer, PaymentMethod } from '@/types';
 import { useCartStore } from '@/store/cartStore';
 import { billService } from '@/services/billService';
+import { customerService } from '@/services/customerService';
+import { creditBookService } from '@/services/creditBookService';
 import { formatCurrency } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,7 +24,8 @@ interface Props {
   open: boolean;
   onClose: () => void;
   customer: Customer | null;
-  onSuccess: (billId: string) => void;
+  onCustomerChange: (customer: Customer | null) => void;
+  onSuccess: (bill: Bill) => void;
 }
 
 const PAYMENT_METHODS: { value: PaymentMethod; label: string; icon: React.ElementType }[] = [
@@ -31,16 +34,76 @@ const PAYMENT_METHODS: { value: PaymentMethod; label: string; icon: React.Elemen
   { value: 'UPI', label: 'UPI', icon: Smartphone },
 ];
 
-export default function PaymentModal({ open, onClose, customer, onSuccess }: Props) {
+export default function PaymentModal({ open, onClose, customer, onCustomerChange, onSuccess }: Props) {
   const { items, discountAmount, getSubtotal, getTaxAmount, getTotalAmount, clearCart } = useCartStore();
+
+  // Local customer state — pre-filled from prop, editable inside modal
+  const [localCustomer, setLocalCustomer] = useState<Customer | null>(customer);
+  const [customerQuery, setCustomerQuery] = useState(customer?.name ?? '');
+  const [customerResults, setCustomerResults] = useState<Customer[]>([]);
+  const [kathaBalance, setKathaBalance] = useState(0);
+
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CASH');
   const [amountTendered, setAmountTendered] = useState('');
   const [redeemPoints, setRedeemPoints] = useState(false);
+  const [useKatha, setUseKatha] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Sync state when modal opens/closes
+  useEffect(() => {
+    if (open) {
+      setLocalCustomer(customer);
+      setCustomerQuery(customer?.name ?? '');
+      setCustomerResults([]);
+      setPaymentMethod('CASH');
+      setAmountTendered('');
+      setRedeemPoints(false);
+      setUseKatha(false);
+      setError('');
+      setKathaBalance(0);
+    }
+  }, [open]);
+
+  // Fetch katha balance whenever customer changes
+  useEffect(() => {
+    if (!localCustomer) { setKathaBalance(0); return; }
+    creditBookService.getCustomer(localCustomer.id)
+      .then((res) => setKathaBalance(Number(res.data.data.creditBalance)))
+      .catch(() => setKathaBalance(0));
+  }, [localCustomer?.id]);
+
+  const handleCustomerSearch = async (q: string) => {
+    setCustomerQuery(q);
+    if (q.length >= 2) {
+      const res = await customerService.search(q);
+      setCustomerResults(res.data.data);
+    } else {
+      setCustomerResults([]);
+    }
+  };
+
+  const selectCustomer = (c: Customer) => {
+    setLocalCustomer(c);
+    setCustomerQuery(c.name);
+    setCustomerResults([]);
+    setUseKatha(false);
+    setRedeemPoints(false);
+    onCustomerChange(c);
+  };
+
+  const clearCustomer = () => {
+    setLocalCustomer(null);
+    setCustomerQuery('');
+    setCustomerResults([]);
+    setKathaBalance(0);
+    setUseKatha(false);
+    setRedeemPoints(false);
+    onCustomerChange(null);
+  };
+
   const baseTotal = getTotalAmount();
-  const availablePoints = customer?.loyaltyPoints ?? 0;
+  const availablePoints = localCustomer?.loyaltyPoints ?? 0;
   const canRedeem = availablePoints >= MIN_POINTS;
 
   const pointsDiscount = useMemo(() => {
@@ -52,9 +115,14 @@ export default function PaymentModal({ open, onClose, customer, onSuccess }: Pro
   const finalTotal = baseTotal - pointsDiscount;
   const pointsEarnedAfter = Math.floor(finalTotal / 100);
   const change = paymentMethod === 'CASH' ? (parseFloat(amountTendered) || 0) - finalTotal : 0;
+  const effectivePaymentMethod: PaymentMethod = useKatha ? 'CREDIT' : paymentMethod;
 
   const handleSubmit = async () => {
-    if (paymentMethod === 'CASH' && parseFloat(amountTendered) < finalTotal) {
+    if (useKatha && !localCustomer) {
+      setError('Select a customer to use Katha');
+      return;
+    }
+    if (!useKatha && paymentMethod === 'CASH' && parseFloat(amountTendered) < finalTotal) {
       setError('Amount tendered is less than total');
       return;
     }
@@ -62,10 +130,10 @@ export default function PaymentModal({ open, onClose, customer, onSuccess }: Pro
     setLoading(true);
     try {
       const res = await billService.create({
-        customerId: customer?.id,
-        paymentMethod,
+        customerId: localCustomer?.id,
+        paymentMethod: effectivePaymentMethod,
         discountAmount,
-        redeemPoints: redeemPoints && canRedeem,
+        redeemPoints: !useKatha && redeemPoints && canRedeem,
         items: items.map((i) => ({
           productId: i.product.id,
           quantity: i.quantity,
@@ -73,7 +141,7 @@ export default function PaymentModal({ open, onClose, customer, onSuccess }: Pro
         })),
       });
       clearCart();
-      onSuccess(res.data.data.id);
+      onSuccess(res.data.data);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to create bill');
     } finally {
@@ -83,7 +151,7 @@ export default function PaymentModal({ open, onClose, customer, onSuccess }: Pro
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Payment</DialogTitle>
         </DialogHeader>
@@ -98,7 +166,7 @@ export default function PaymentModal({ open, onClose, customer, onSuccess }: Pro
             )}
             {pointsDiscount > 0 && (
               <div className="flex justify-between text-yellow-600">
-                <span className="flex items-center gap-1"><Star className="h-3 w-3" /> Points redeemed ({pointsDiscount} pts)</span>
+                <span className="flex items-center gap-1"><Star className="h-3 w-3" /> Points redeemed</span>
                 <span>- {formatCurrency(pointsDiscount)}</span>
               </div>
             )}
@@ -107,16 +175,88 @@ export default function PaymentModal({ open, onClose, customer, onSuccess }: Pro
             </div>
           </div>
 
-          {/* Loyalty Points Redemption */}
-          {customer && (
+          {/* ── Customer Section ── */}
+          <div className="space-y-2">
+            <Label>Customer</Label>
+            {localCustomer ? (
+              <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-3 py-2">
+                <div>
+                  <p className="text-sm font-semibold">{localCustomer.name}</p>
+                  {localCustomer.phone && (
+                    <p className="text-xs text-muted-foreground">{localCustomer.phone}</p>
+                  )}
+                </div>
+                <button onClick={clearCustomer} className="rounded-full p-1 hover:bg-muted">
+                  <X className="h-4 w-4 text-muted-foreground" />
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <UserSearch className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  className="pl-8"
+                  placeholder="Search by name or phone…"
+                  value={customerQuery}
+                  onChange={(e) => handleCustomerSearch(e.target.value)}
+                  onBlur={() => setTimeout(() => setCustomerResults([]), 200)}
+                />
+                {customerResults.length > 0 && (
+                  <div className="absolute z-20 mt-1 w-full rounded-md border bg-background shadow-lg">
+                    {customerResults.map((c) => (
+                      <button
+                        key={c.id}
+                        className="flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-muted"
+                        onMouseDown={() => selectCustomer(c)}
+                      >
+                        <span className="font-medium">{c.name}</span>
+                        <span className="text-xs text-muted-foreground">{c.phone}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Katha outstanding balance alert */}
+            {localCustomer && kathaBalance > 0 && (
+              <div className="flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-700">
+                <BookOpen className="h-3.5 w-3.5 shrink-0" />
+                <span>Outstanding Katha: <strong>{formatCurrency(kathaBalance)}</strong></span>
+              </div>
+            )}
+          </div>
+
+          {/* ── Katha Toggle ── */}
+          {localCustomer && (
+            <button
+              onClick={() => { setUseKatha((v) => !v); setRedeemPoints(false); }}
+              className={`flex w-full items-center justify-between rounded-lg border p-3 transition-colors ${
+                useKatha ? 'border-orange-400 bg-orange-50' : 'hover:bg-muted/50'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <BookOpen className={`h-4 w-4 ${useKatha ? 'text-orange-500' : 'text-muted-foreground'}`} />
+                <div className="text-left">
+                  <p className={`text-sm font-medium ${useKatha ? 'text-orange-700' : ''}`}>Katha — Pay Later</p>
+                  <p className="text-xs text-muted-foreground">Bill added to {localCustomer.name}'s khata book</p>
+                </div>
+              </div>
+              <div className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${useKatha ? 'bg-orange-400' : 'bg-muted-foreground/30'}`}>
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${useKatha ? 'translate-x-4' : 'translate-x-0.5'}`} />
+              </div>
+            </button>
+          )}
+
+          {/* ── Loyalty Points ── hidden for Katha */}
+          {localCustomer && !useKatha && (
             <div className="rounded-lg border p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Star className="h-4 w-4 text-yellow-500" />
                   <div>
-                    <p className="text-sm font-medium">{customer.name}</p>
+                    <p className="text-sm font-medium">{localCustomer.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {availablePoints} points available · worth {formatCurrency(availablePoints)}
+                      {availablePoints} pts · worth {formatCurrency(availablePoints)}
                     </p>
                   </div>
                 </div>
@@ -128,38 +268,40 @@ export default function PaymentModal({ open, onClose, customer, onSuccess }: Pro
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${redeemPoints ? 'translate-x-4' : 'translate-x-0.5'}`} />
                   </button>
                 ) : (
-                  <span className="text-xs text-muted-foreground">Min {MIN_POINTS} pts</span>
+                  <span className="text-xs text-muted-foreground">Min {MIN_POINTS} pts to redeem</span>
                 )}
               </div>
               {redeemPoints && canRedeem && (
                 <p className="text-xs text-yellow-700 bg-yellow-50 rounded px-2 py-1">
-                  Redeeming {pointsDiscount} pts → {formatCurrency(pointsDiscount)} off · You earn {pointsEarnedAfter} pts after this bill
+                  Redeeming {pointsDiscount} pts → {formatCurrency(pointsDiscount)} off · Earn {pointsEarnedAfter} pts after this bill
                 </p>
               )}
             </div>
           )}
 
-          {/* Payment Method */}
-          <div>
-            <Label className="mb-2 block">Payment Method</Label>
-            <div className="grid grid-cols-3 gap-2">
-              {PAYMENT_METHODS.map(({ value, label, icon: Icon }) => (
-                <button
-                  key={value}
-                  onClick={() => setPaymentMethod(value)}
-                  className={`flex flex-col items-center gap-1 rounded-lg border py-3 text-xs transition-colors ${
-                    paymentMethod === value ? 'border-primary bg-primary text-white' : 'hover:bg-muted'
-                  }`}
-                >
-                  <Icon className="h-5 w-5" />
-                  {label}
-                </button>
-              ))}
+          {/* ── Payment Method — hidden for Katha ── */}
+          {!useKatha && (
+            <div>
+              <Label className="mb-2 block">Payment Method</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {PAYMENT_METHODS.map(({ value, label, icon: Icon }) => (
+                  <button
+                    key={value}
+                    onClick={() => setPaymentMethod(value)}
+                    className={`flex flex-col items-center gap-1 rounded-lg border py-3 text-xs transition-colors ${
+                      paymentMethod === value ? 'border-primary bg-primary text-white' : 'hover:bg-muted'
+                    }`}
+                  >
+                    <Icon className="h-5 w-5" />
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Cash tendered */}
-          {paymentMethod === 'CASH' && (
+          {/* ── Cash Tendered ── */}
+          {!useKatha && paymentMethod === 'CASH' && (
             <div className="space-y-1.5">
               <Label htmlFor="tendered">Amount Tendered (₹)</Label>
               <Input
@@ -182,8 +324,16 @@ export default function PaymentModal({ open, onClose, customer, onSuccess }: Pro
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={loading}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={loading || items.length === 0}>
-            {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Processing…</> : `Pay ${formatCurrency(finalTotal)}`}
+          <Button
+            onClick={handleSubmit}
+            disabled={loading || items.length === 0}
+            className={useKatha ? 'bg-orange-500 hover:bg-orange-600' : ''}
+          >
+            {loading
+              ? <><Loader2 className="h-4 w-4 animate-spin" /> Processing…</>
+              : useKatha
+                ? <><BookOpen className="mr-1 h-4 w-4" /> Add to Katha — {formatCurrency(finalTotal)}</>
+                : `Pay ${formatCurrency(finalTotal)}`}
           </Button>
         </DialogFooter>
       </DialogContent>
