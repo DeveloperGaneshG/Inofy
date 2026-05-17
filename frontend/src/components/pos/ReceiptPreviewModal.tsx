@@ -77,7 +77,7 @@ export default function ReceiptPreviewModal({ bill, onClose, onNewBill, onViewIn
                 <div className="truncate font-medium">{(i + 1).toString().padStart(2, ' ')}. {item.product?.name ?? item.productId}</div>
                 <div className="grid grid-cols-3 pl-3 text-center items-center">
                   <span className="text-left text-[10px]">{qty} x {formatCurrency(mrp)}</span>
-                  <span className="text-[10px] text-green-700">{totalDisc > 0 ? `-${formatCurrency(totalDisc)}` : '—'}</span>
+                  <span className="text-[10px] text-green-700">{totalDisc > 0 ? formatCurrency(totalDisc) : '—'}</span>
                   <span className="text-right font-medium">{formatCurrency(totalAmt)}</span>
                 </div>
               </div>
