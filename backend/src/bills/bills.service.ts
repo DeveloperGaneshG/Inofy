@@ -144,7 +144,7 @@ export class BillsService {
       });
 
       return bill;
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 15000, maxWait: 5000 });
   }
 
   async findAll(page = 1, limit = 10) {
@@ -247,7 +247,7 @@ export class BillsService {
             });
           }
         }
-      });
+      }, { timeout: 15000, maxWait: 5000 });
     } else {
       await this.prisma.bill.update({ where: { id }, data: { status: dto.status } });
     }
