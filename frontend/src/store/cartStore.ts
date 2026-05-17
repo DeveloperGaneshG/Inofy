@@ -84,5 +84,5 @@ export const useCartStore = create<CartState>()((set, get) => ({
       return sum + item.totalPrice * rate;
     }, 0),
   getTotalAmount: () =>
-    get().getSubtotal() + get().getTaxAmount() - get().discountAmount,
+    Math.max(0, get().getSubtotal() + get().getTaxAmount() - get().discountAmount),
 }));

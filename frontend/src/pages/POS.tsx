@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, ShoppingCart, UserSearch, Trash2, Percent, ScanLine } from 'lucide-react';
-import { Product, Customer } from '@/types';
+import { Search, ShoppingCart, UserSearch, Percent, ScanLine } from 'lucide-react';
+import { Bill, Product, Customer } from '@/types';
 import { productService } from '@/services/productService';
 import { customerService } from '@/services/customerService';
 import { useCartStore } from '@/store/cartStore';
@@ -8,6 +8,7 @@ import { formatCurrency } from '@/lib/utils';
 import ProductCard from '@/components/pos/ProductCard';
 import CartItemComponent from '@/components/pos/CartItem';
 import PaymentModal from '@/components/pos/PaymentModal';
+import ReceiptPreviewModal from '@/components/pos/ReceiptPreviewModal';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,7 +25,7 @@ export default function POS() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [showCustomerSearch, setShowCustomerSearch] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
-  const [completedBillId, setCompletedBillId] = useState<string | null>(null);
+  const [previewBill, setPreviewBill] = useState<Bill | null>(null);
   const [discountInput, setDiscountInput] = useState('');
 
   const { items, addItem, clearCart, setDiscount, discountAmount, getSubtotal, getTaxAmount, getTotalAmount } =
@@ -103,34 +104,17 @@ export default function POS() {
 
   const handleDiscountChange = (val: string) => {
     setDiscountInput(val);
-    setDiscount(parseFloat(val) || 0);
+    setDiscount(Math.max(0, parseFloat(val) || 0));
   };
 
-  const handlePaymentSuccess = (billId: string) => {
+  const handlePaymentSuccess = (bill: Bill) => {
     setPaymentOpen(false);
-    setCompletedBillId(billId);
     setSelectedCustomer(null);
     setCustomerQuery('');
     setDiscountInput('');
+    void loadProducts();
+    setPreviewBill(bill);
   };
-
-  if (completedBillId) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-4">
-        <div className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-            <span className="text-3xl">✓</span>
-          </div>
-          <h2 className="text-xl font-bold">Bill Created!</h2>
-          <p className="text-muted-foreground">Bill processed successfully</p>
-        </div>
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={() => navigate(`/invoices`)}>View Invoice</Button>
-          <Button onClick={() => setCompletedBillId(null)}>New Bill (F2)</Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex h-[calc(100vh-3rem)] gap-4">
@@ -196,6 +180,7 @@ export default function POS() {
               placeholder="Search customer (optional)"
               value={customerQuery}
               onFocus={() => setShowCustomerSearch(true)}
+              onBlur={() => setTimeout(() => setShowCustomerSearch(false), 150)}
               onChange={(e) => handleCustomerSearch(e.target.value)}
             />
           </div>
@@ -216,7 +201,7 @@ export default function POS() {
           {selectedCustomer && (
             <div className="mt-1.5 flex items-center justify-between rounded bg-muted px-2 py-1">
               <span className="text-xs font-medium">{selectedCustomer.name}</span>
-              <button className="text-xs text-muted-foreground hover:text-destructive" onClick={() => { setSelectedCustomer(null); setCustomerQuery(''); }}>×</button>
+              <button className="text-xs text-muted-foreground hover:text-destructive" onClick={() => { setSelectedCustomer(null); setCustomerQuery(''); setCustomerResults([]); setShowCustomerSearch(false); }}>×</button>
             </div>
           )}
         </div>
@@ -280,7 +265,15 @@ export default function POS() {
         open={paymentOpen}
         onClose={() => setPaymentOpen(false)}
         customer={selectedCustomer}
+        onCustomerChange={(c) => { setSelectedCustomer(c); setCustomerQuery(c?.name ?? ''); }}
         onSuccess={handlePaymentSuccess}
+      />
+
+      <ReceiptPreviewModal
+        bill={previewBill}
+        onClose={() => setPreviewBill(null)}
+        onNewBill={() => { setPreviewBill(null); requestAnimationFrame(() => searchRef.current?.focus()); }}
+        onViewInvoice={() => { setPreviewBill(null); navigate('/invoices'); }}
       />
     </div>
   );

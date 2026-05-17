@@ -15,6 +15,7 @@ import { CreditBookModule } from './credit-book/credit-book.module';
 import { ExpiryModule } from './expiry/expiry.module';
 import { InventoryAdjustmentsModule } from './inventory-adjustments/inventory-adjustments.module';
 import { AuditModule } from './audit/audit.module';
+import { PrintModule } from './print/print.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -39,6 +40,7 @@ import { AppService } from './app.service';
     ExpiryModule,
     InventoryAdjustmentsModule,
     AuditModule,
+    PrintModule,
   ],
   controllers: [AppController],
   providers: [AppService],

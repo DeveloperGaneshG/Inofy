@@ -1,5 +1,5 @@
 export type Role = 'ADMIN' | 'MANAGER' | 'CASHIER';
-export type PaymentMethod = 'CASH' | 'CARD' | 'UPI';
+export type PaymentMethod = 'CASH' | 'CARD' | 'UPI' | 'CREDIT';
 export type BillStatus = 'PENDING' | 'PAID' | 'CANCELLED';
 export type PurchaseStatus = 'DRAFT' | 'RECEIVED' | 'CANCELLED';
 export type StockMovementType = 'PURCHASE' | 'SALE' | 'RETURN' | 'ADJUSTMENT';

@@ -1,7 +1,14 @@
+import JsBarcode from 'jsbarcode';
 import { Bill } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 import { getStoreSettings } from '@/lib/storeSettings';
 import { api } from '@/lib/axios';
+
+function generateBarcodeSvg(value: string): string {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  JsBarcode(svg, value, { format: 'CODE128', width: 1.5, height: 40, displayValue: true, fontSize: 10, margin: 4 });
+  return svg.outerHTML;
+}
 
 async function printViaBackend(bill: Bill): Promise<boolean> {
   const store = getStoreSettings();
@@ -35,6 +42,7 @@ async function printViaBackend(bill: Bill): Promise<boolean> {
 
 function printViaBrowser(bill: Bill): void {
   const store = getStoreSettings();
+  const barcodeSvg = generateBarcodeSvg(bill.billNumber);
 
   const itemRows = bill.items
     .map(
@@ -94,31 +102,25 @@ function printViaBrowser(bill: Bill): void {
   <div class="solid"></div>
   <div class="row bold lg"><span>TOTAL</span><span>${formatCurrency(Number(bill.totalAmount))}</span></div>
   <div class="solid"></div>
+  <div style="text-align:center;margin:6px 0">${barcodeSvg}</div>
   <div class="center" style="margin-top:6px">Thank you for visiting!</div>
   <div class="center">Come again :)</div>
 </body></html>`;
 
-  const win = window.open('', '_blank', 'width=320,height=600,toolbar=0,menubar=0,scrollbars=0');
-  if (!win) {
-    alert(
-      'Popup blocked — please allow popups for this site.\n' +
-      'Chrome: click the blocked popup icon in the address bar → "Always allow"',
-    );
-    return;
-  }
-  win.document.write(html);
-  win.document.close();
-  win.focus();
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:none;';
+  document.body.appendChild(iframe);
+  const doc = iframe.contentDocument ?? iframe.contentWindow?.document;
+  if (!doc) { document.body.removeChild(iframe); return; }
+  doc.open(); doc.write(html); doc.close();
   setTimeout(() => {
-    win.print();
-    win.onafterprint = () => win.close();
+    iframe.contentWindow?.print();
+    setTimeout(() => document.body.removeChild(iframe), 1000);
   }, 300);
 }
 
 export async function printReceipt(bill: Bill): Promise<void> {
-  // Try direct ESC/POS via backend first (no dialog, instant print)
   const printed = await printViaBackend(bill);
-  // Fall back to browser print dialog if backend fails
   if (!printed) {
     printViaBrowser(bill);
   }

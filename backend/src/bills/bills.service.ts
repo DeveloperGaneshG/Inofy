@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateBillDto } from './dto/create-bill.dto';
 import { UpdateBillStatusDto } from './dto/update-bill-status.dto';
 import { Prisma } from '@prisma/client';
-import { BillStatus, StockMovementType } from '../common/enums';
+import { BillStatus, CreditTransactionType, PaymentMethod, StockMovementType } from '../common/enums';
 
 @Injectable()
 export class BillsService {
@@ -46,6 +46,7 @@ export class BillsService {
       }
     }
 
+    const isKatha = paymentMethod === PaymentMethod.CREDIT;
     const totalAmount = baseTotal - pointsRedeemed;
     const finalDiscount = discountAmount + pointsRedeemed;
 
@@ -67,7 +68,7 @@ export class BillsService {
           discountAmount: finalDiscount,
           totalAmount,
           paymentMethod,
-          status: BillStatus.PAID,
+          status: isKatha ? BillStatus.PENDING : BillStatus.PAID,
           items: {
             create: items.map((item) => ({
               productId: item.productId,
@@ -83,6 +84,18 @@ export class BillsService {
           user: { select: { id: true, name: true, email: true } },
         },
       });
+
+      if (isKatha && customerId) {
+        await tx.creditTransaction.create({
+          data: {
+            customerId,
+            type: CreditTransactionType.CREDIT,
+            amount: totalAmount,
+            description: bill.billNumber,
+            note: `Katha entry from POS`,
+          },
+        });
+      }
 
       // Atomic decrement — fails if stock < quantity, preventing overselling
       for (const item of items) {
@@ -109,7 +122,7 @@ export class BillsService {
         });
       }
 
-      if (customerId) {
+      if (customerId && !isKatha) {
         const pointsEarned = Math.floor(totalAmount / 100);
         const netPointChange = pointsEarned - pointsRedeemed;
         await tx.customer.update({
