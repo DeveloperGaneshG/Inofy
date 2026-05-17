@@ -10,7 +10,7 @@ export interface PrintBillDto {
   cashier: string;
   customer?: string;
   paymentMethod: string;
-  items: { name: string; quantity: number; unitPrice: number; totalPrice: number }[];
+  items: { name: string; quantity: number; unitPrice: number; mrp?: number; totalPrice: number }[];
   subtotal: number;
   taxAmount: number;
   discountAmount: number;
@@ -142,11 +142,16 @@ export class PrintService {
 
     // ── Line items ──────────────────────────────────────
     dto.items.forEach((item, i) => {
+      const mrp = item.mrp ?? item.unitPrice;
+      const itemDisc = mrp > item.unitPrice ? (mrp - item.unitPrice) * item.quantity : 0;
       add(this.line(`${(i + 1).toString().padStart(2)}. ${item.name.substring(0, 38)}`));
       add(this.line(this.padRow(
-        `    ${item.quantity} x ${this.formatCurrency(item.unitPrice)}`,
+        `    ${item.quantity} x ${this.formatCurrency(mrp)}`,
         this.formatCurrency(item.totalPrice),
       )));
+      if (itemDisc > 0) {
+        add(this.line(this.padRow('    Item Discount', `- ${this.formatCurrency(itemDisc)}`)));
+      }
     });
 
     // ── Totals ──────────────────────────────────────────

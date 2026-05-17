@@ -30,6 +30,7 @@ async function printViaBackend(bill: Bill): Promise<boolean> {
         name: i.product?.name ?? i.productId,
         quantity: i.quantity,
         unitPrice: Number(i.unitPrice),
+        mrp: Number(i.product?.mrp ?? i.unitPrice),
         totalPrice: Number(i.totalPrice),
       })),
       subtotal: Number(bill.subtotal),
