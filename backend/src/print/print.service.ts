@@ -15,6 +15,7 @@ export interface PrintBillDto {
   taxAmount: number;
   discountAmount: number;
   totalAmount: number;
+  savedAmount?: number;
   storeName: string;
   storeAddress: string;
   storePhone: string;
@@ -160,6 +161,13 @@ export class PrintService {
     add(this.line(this.padRow('TOTAL', this.formatCurrency(dto.totalAmount))));
     add(this.esc(BOLD_OFF));
     sep();
+
+    if (dto.savedAmount && dto.savedAmount > 0) {
+      add(this.esc(CENTER), this.esc(BOLD_ON));
+      add(this.line(`** You saved ${this.formatCurrency(dto.savedAmount)} on this bill! **`));
+      add(this.esc(BOLD_OFF));
+      add(this.line(''));
+    }
 
     // ── Barcode ─────────────────────────────────────────
     add(this.esc(CENTER));

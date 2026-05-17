@@ -13,6 +13,13 @@ function generateBarcodeSvg(value: string): string {
 async function printViaBackend(bill: Bill): Promise<boolean> {
   const store = getStoreSettings();
   try {
+    const itemSavings = bill.items.reduce((sum, item) => {
+      const mrp = Number(item.product?.mrp ?? item.unitPrice);
+      const disc = mrp > Number(item.unitPrice) ? (mrp - Number(item.unitPrice)) * item.quantity : 0;
+      return sum + disc;
+    }, 0);
+    const savedAmount = itemSavings + Number(bill.discountAmount);
+
     const res = await api.post('/print/receipt', {
       billNumber: bill.billNumber,
       createdAt: bill.createdAt,
@@ -29,6 +36,7 @@ async function printViaBackend(bill: Bill): Promise<boolean> {
       taxAmount: Number(bill.taxAmount),
       discountAmount: Number(bill.discountAmount),
       totalAmount: Number(bill.totalAmount),
+      savedAmount: savedAmount > 0 ? savedAmount : undefined,
       storeName: store.name,
       storeAddress: store.address,
       storePhone: store.phone,
