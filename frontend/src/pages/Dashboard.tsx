@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, ShoppingBag, Package, AlertTriangle } from 'lucide-react';
+import { TrendingUp, ShoppingBag, Package, AlertTriangle, Users } from 'lucide-react';
 import { reportService } from '@/services/reportService';
 import { billService } from '@/services/billService';
-import { Bill } from '@/types';
+import { Bill, RepeatedCustomer } from '@/types';
 import StatsCard from '@/components/dashboard/StatsCard';
 import SalesChart from '@/components/dashboard/SalesChart';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -18,6 +18,7 @@ export default function Dashboard() {
   const [salesData, setSalesData] = useState<{ date: string; revenue: number }[]>([]);
   const [topProducts, setTopProducts] = useState<{ name: string; quantity: number; revenue: number }[]>([]);
   const [recentBills, setRecentBills] = useState<Bill[]>([]);
+  const [topRepeatCustomers, setTopRepeatCustomers] = useState<RepeatedCustomer[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,11 +30,15 @@ export default function Dashboard() {
     try {
       const today = new Date().toISOString().split('T')[0];
 
-      const [dailyRes, inventoryRes, topRes, billsRes] = await Promise.all([
+      const now = new Date();
+      const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, 1).toISOString().split('T')[0];
+
+      const [dailyRes, inventoryRes, topRes, billsRes, rcRes] = await Promise.all([
         reportService.getDailySales(today),
         reportService.getInventory(),
         reportService.getTopProducts(5),
         billService.getAll(1, 10),
+        reportService.getRepeatedCustomers(threeMonthsAgo, today, 2),
       ]);
 
       setTodaySales(dailyRes.data.data.totalSales);
@@ -48,6 +53,7 @@ export default function Dashboard() {
         })),
       );
       setRecentBills(billsRes.data.data.data);
+      setTopRepeatCustomers(rcRes.data.data.slice(0, 8));
 
       // Build last 7 days chart data
       const last7: { date: string; revenue: number }[] = [];
@@ -126,12 +132,61 @@ export default function Dashboard() {
       {/* Charts */}
       <SalesChart salesData={salesData} topProducts={topProducts} />
 
+      {/* Top Repeat Customers */}
+      {topRepeatCustomers.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
+              <Users className="h-4 w-4 text-primary" />
+              Top Repeat Customers
+              <span className="ml-auto text-xs font-normal text-muted-foreground">Last 3 months · sorted by visits</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0 overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="text-xs">
+                  <TableHead className="pl-5">#</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Mobile</TableHead>
+                  <TableHead className="text-center">Visits</TableHead>
+                  <TableHead className="text-right">Total Sales</TableHead>
+                  <TableHead className="text-right">Avg Bill</TableHead>
+                  <TableHead className="text-right pr-5">Points</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {topRepeatCustomers.map((c, i) => (
+                  <TableRow key={c.customerId} className="text-sm">
+                    <TableCell className="pl-5 text-muted-foreground font-medium">{i + 1}</TableCell>
+                    <TableCell className="font-medium">{c.customerName}</TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">{c.phone}</TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant="secondary">{c.totalBills}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-medium">{formatCurrency(c.totalSales)}</TableCell>
+                    <TableCell className="text-right text-muted-foreground">{formatCurrency(c.abv)}</TableCell>
+                    <TableCell className="text-right pr-5">
+                      {c.currentPoints > 0 ? (
+                        <span className="text-green-700 font-medium">{c.currentPoints}</span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Recent Bills */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium">Recent Bills</CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>

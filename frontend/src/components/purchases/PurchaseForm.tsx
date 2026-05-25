@@ -120,7 +120,7 @@ export default function PurchaseForm({ open, onClose, onCreated }: Props) {
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1">
               <Label>Supplier *</Label>
               <Select value={supplierId} onValueChange={setSupplierId}>
@@ -140,8 +140,8 @@ export default function PurchaseForm({ open, onClose, onCreated }: Props) {
             </div>
           </div>
 
-          <div className="rounded-lg border">
-            <div className="grid grid-cols-[1fr_80px_100px_100px_100px_36px] gap-2 border-b bg-muted/50 px-3 py-2 text-xs font-medium text-muted-foreground">
+          <div className="rounded-lg border overflow-x-auto">
+            <div className="grid grid-cols-[1fr_80px_100px_100px_100px_36px] gap-2 border-b bg-muted/50 px-3 py-2 text-xs font-medium text-muted-foreground" style={{minWidth: '520px'}}>
               <span>Product</span>
               <span>Qty</span>
               <span>Cost (₹)</span>
@@ -151,7 +151,7 @@ export default function PurchaseForm({ open, onClose, onCreated }: Props) {
             </div>
 
             {rows.map((row, idx) => (
-              <div key={idx} className="grid grid-cols-[1fr_80px_100px_100px_100px_36px] gap-2 border-b px-3 py-2 last:border-0">
+              <div key={idx} className="grid grid-cols-[1fr_80px_100px_100px_100px_36px] gap-2 border-b px-3 py-2 last:border-0" style={{minWidth: '520px'}}>
                 <div className="relative">
                   <Input
                     value={row._search}

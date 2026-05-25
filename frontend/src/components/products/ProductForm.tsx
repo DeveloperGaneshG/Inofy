@@ -112,14 +112,14 @@ export default function ProductForm({ open, product, onClose, onSaved }: Props) 
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Edit Product' : 'Add Product'}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1 col-span-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1 col-span-1 sm:col-span-2">
               <Label>Name *</Label>
               <Input {...register('name')} placeholder="Product name" />
               {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
@@ -167,7 +167,7 @@ export default function ProductForm({ open, product, onClose, onSaved }: Props) 
                 ))}
               </select>
             </div>
-            <div className="space-y-1 col-span-2">
+            <div className="space-y-1 col-span-1 sm:col-span-2">
               <Label>Category *</Label>
               <select
                 {...register('categoryId')}
@@ -180,7 +180,7 @@ export default function ProductForm({ open, product, onClose, onSaved }: Props) 
               </select>
               {errors.categoryId && <p className="text-xs text-destructive">{errors.categoryId.message}</p>}
             </div>
-            <div className="space-y-1 col-span-2">
+            <div className="space-y-1 col-span-1 sm:col-span-2">
               <Label>Image URL</Label>
               <Input {...register('imageUrl')} placeholder="https://..." />
             </div>

@@ -14,6 +14,7 @@ interface Props {
 
 export default function ProductTable({ products, onEdit, onDelete, onPrintLabel }: Props) {
   return (
+    <div className="overflow-x-auto">
     <Table>
       <TableHeader>
         <TableRow>
@@ -102,5 +103,6 @@ export default function ProductTable({ products, onEdit, onDelete, onPrintLabel 
         })}
       </TableBody>
     </Table>
+    </div>
   );
 }

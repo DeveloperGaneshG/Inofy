@@ -75,7 +75,7 @@ export default function AuditLogs() {
       </div>
 
       {/* Logs table */}
-      <div className="rounded-lg border bg-card">
+      <div className="rounded-lg border bg-card overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="border-b bg-muted/40">
             <tr>
@@ -123,7 +123,7 @@ export default function AuditLogs() {
                   {expandedId === log.id && (log.before || log.after) && (
                     <tr key={`${log.id}-expanded`} className="border-b bg-muted/10">
                       <td colSpan={5} className="px-4 py-3">
-                        <div className="grid grid-cols-2 gap-4 text-xs">
+                        <div className="grid grid-cols-1 gap-4 text-xs sm:grid-cols-2">
                           {log.before && (
                             <div>
                               <p className="font-semibold text-muted-foreground mb-1">Before</p>

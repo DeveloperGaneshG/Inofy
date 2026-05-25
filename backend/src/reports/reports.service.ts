@@ -108,6 +108,56 @@ export class ReportsService {
     };
   }
 
+  async getRepeatedCustomers(from: string, to: string, minBills = 2, limit = 200) {
+    const fromDate = new Date(from);
+    fromDate.setHours(0, 0, 0, 0);
+    const toDate = new Date(to);
+    toDate.setHours(23, 59, 59, 999);
+
+    const customers = await this.prisma.customer.findMany({
+      include: {
+        bills: {
+          where: { status: BillStatus.PAID },
+          select: { id: true, totalAmount: true, createdAt: true },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+    });
+
+    const rows = customers
+      .filter((c) => c.bills.length >= minBills)
+      .map((c) => {
+        const allBills = c.bills;
+        const rangeBills = allBills.filter((b) => b.createdAt >= fromDate && b.createdAt <= toDate);
+        const totalBills = allBills.length;
+        const totalSales = allBills.reduce((s, b) => s + Number(b.totalAmount), 0);
+        const repeatBills = rangeBills.length;
+        const repeatSales = rangeBills.reduce((s, b) => s + Number(b.totalAmount), 0);
+        const abv = totalBills > 0 ? totalSales / totalBills : 0;
+        const earnedPoints = Math.floor(totalSales / 100);
+        const redeemedPoints = Math.max(0, earnedPoints - c.loyaltyPoints);
+
+        return {
+          customerId: c.id,
+          customerName: c.name || '—',
+          phone: c.phone || '—',
+          entryDate: allBills[0]?.createdAt ?? null,
+          totalBills,
+          totalSales: +totalSales.toFixed(2),
+          repeatBills,
+          repeatSales: +repeatSales.toFixed(2),
+          abv: +abv.toFixed(2),
+          earnedPoints,
+          redeemedPoints,
+          currentPoints: c.loyaltyPoints,
+        };
+      })
+      .sort((a, b) => b.totalBills - a.totalBills || b.totalSales - a.totalSales)
+      .slice(0, limit);
+
+    return rows;
+  }
+
   async getInventory() {
     const products = await this.prisma.product.findMany({
       include: { category: true },

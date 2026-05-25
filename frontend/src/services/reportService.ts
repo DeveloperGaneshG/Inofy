@@ -1,5 +1,5 @@
 import { api } from '@/lib/axios';
-import { ApiResponse, DailySalesReport, MonthlySalesReport, TopProduct, RevenueReport, InventoryReport } from '@/types';
+import { ApiResponse, DailySalesReport, MonthlySalesReport, TopProduct, RevenueReport, InventoryReport, RepeatedCustomer } from '@/types';
 
 export const reportService = {
   getDailySales: (date?: string) =>
@@ -19,4 +19,7 @@ export const reportService = {
     api.get<ApiResponse<RevenueReport>>(`/reports/revenue?from=${from}&to=${to}`),
 
   getInventory: () => api.get<ApiResponse<InventoryReport>>('/reports/inventory'),
+
+  getRepeatedCustomers: (from: string, to: string, minBills = 2) =>
+    api.get<ApiResponse<RepeatedCustomer[]>>(`/reports/repeated-customers?from=${from}&to=${to}&minBills=${minBills}`),
 };

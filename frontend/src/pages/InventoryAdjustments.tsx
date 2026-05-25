@@ -123,7 +123,7 @@ export default function InventoryAdjustments() {
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border bg-card">
+      <div className="rounded-lg border bg-card overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="border-b bg-muted/40">
             <tr>

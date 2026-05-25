@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, ShoppingCart, UserSearch, Percent, ScanLine } from 'lucide-react';
+import { Search, ShoppingCart, UserSearch, Percent, ScanLine, X } from 'lucide-react';
 import { Bill, Product, Customer } from '@/types';
 import { productService } from '@/services/productService';
 import { customerService } from '@/services/customerService';
@@ -27,6 +27,7 @@ export default function POS() {
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [previewBill, setPreviewBill] = useState<Bill | null>(null);
   const [discountInput, setDiscountInput] = useState('');
+  const [showMobileCart, setShowMobileCart] = useState(false);
 
   const { items, addItem, clearCart, setDiscount, discountAmount, getSubtotal, getTaxAmount, getTotalAmount } =
     useCartStore();
@@ -112,12 +113,139 @@ export default function POS() {
     setSelectedCustomer(null);
     setCustomerQuery('');
     setDiscountInput('');
+    setShowMobileCart(false);
     void loadProducts();
     setPreviewBill(bill);
   };
 
+  const cartCount = items.reduce((s, i) => s + i.quantity, 0);
+
+  const cartPanel = (
+    <div className="flex flex-col h-full rounded-xl border bg-card shadow-sm">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b px-4 py-3">
+        <div className="flex items-center gap-2">
+          <ShoppingCart className="h-4 w-4" />
+          <span className="font-semibold">Cart</span>
+          {cartCount > 0 && <Badge>{cartCount}</Badge>}
+        </div>
+        <div className="flex items-center gap-2">
+          {items.length > 0 && (
+            <button className="text-xs text-destructive hover:underline" onClick={clearCart}>
+              Clear
+            </button>
+          )}
+          {/* Close button — mobile only */}
+          <button
+            className="lg:hidden rounded-md p-1 text-muted-foreground hover:bg-accent"
+            onClick={() => setShowMobileCart(false)}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Customer Search */}
+      <div className="border-b p-3">
+        <div className="relative">
+          <UserSearch className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            className="pl-8 text-xs"
+            placeholder="Search customer (optional)"
+            value={customerQuery}
+            onFocus={() => setShowCustomerSearch(true)}
+            onBlur={() => setTimeout(() => setShowCustomerSearch(false), 150)}
+            onChange={(e) => handleCustomerSearch(e.target.value)}
+          />
+        </div>
+        {showCustomerSearch && customerResults.length > 0 && (
+          <div className="absolute z-10 mt-1 w-72 rounded-md border bg-background shadow-lg">
+            {customerResults.map((c) => (
+              <button
+                key={c.id}
+                className="flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-muted"
+                onClick={() => selectCustomer(c)}
+              >
+                <span>{c.name}</span>
+                <span className="text-xs text-muted-foreground">{c.phone}</span>
+              </button>
+            ))}
+          </div>
+        )}
+        {selectedCustomer && (
+          <div className="mt-1.5 flex items-center justify-between rounded bg-muted px-2 py-1">
+            <span className="text-xs font-medium">{selectedCustomer.name}</span>
+            <button className="text-xs text-muted-foreground hover:text-destructive" onClick={() => { setSelectedCustomer(null); setCustomerQuery(''); setCustomerResults([]); setShowCustomerSearch(false); }}>×</button>
+          </div>
+        )}
+      </div>
+
+      {/* Cart Items */}
+      <div className="flex-1 overflow-y-auto px-3 py-2">
+        {items.length === 0 ? (
+          <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
+            <ShoppingCart className="h-8 w-8 opacity-30" />
+            <p className="text-sm">Cart is empty</p>
+            <p className="text-xs">Scan a barcode or press Enter to add</p>
+          </div>
+        ) : (
+          items.map((item) => <CartItemComponent key={item.product.id} item={item} />)
+        )}
+      </div>
+
+      {/* Summary */}
+      <div className="border-t p-3 space-y-2">
+        <div className="flex justify-between text-sm">
+          <span className="text-muted-foreground">Subtotal</span>
+          <span>{formatCurrency(getSubtotal())}</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-muted-foreground">GST</span>
+          <span>{formatCurrency(getTaxAmount())}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Percent className="h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            className="h-7 text-xs"
+            type="number"
+            min="0"
+            placeholder="Discount (₹)"
+            value={discountInput}
+            onChange={(e) => handleDiscountChange(e.target.value)}
+          />
+        </div>
+        {discountAmount > 0 && (
+          <div className="flex justify-between text-sm text-green-600">
+            <span>Discount</span>
+            <span>- {formatCurrency(discountAmount)}</span>
+          </div>
+        )}
+        <div className="flex justify-between border-t pt-2 font-bold">
+          <span>Total</span>
+          <span className="text-primary text-lg">{formatCurrency(getTotalAmount())}</span>
+        </div>
+
+        <Button
+          className="w-full"
+          disabled={items.length === 0}
+          onClick={() => setPaymentOpen(true)}
+        >
+          Checkout
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="flex h-[calc(100vh-3rem)] gap-4">
+    <div className="relative flex flex-col gap-4 pb-20 lg:pb-0 lg:flex-row lg:h-[calc(100vh-5rem)]">
+      {/* Mobile cart overlay */}
+      {showMobileCart && (
+        <div
+          className="fixed inset-0 z-20 bg-black/50 lg:hidden"
+          onClick={() => setShowMobileCart(false)}
+        />
+      )}
+
       {/* LEFT: Product Search + Grid */}
       <div className="flex flex-1 flex-col gap-3 overflow-hidden">
         <div className="flex items-center gap-2">
@@ -153,113 +281,35 @@ export default function POS() {
         </div>
       </div>
 
-      {/* RIGHT: Cart */}
-      <div className="flex w-80 flex-col rounded-xl border bg-card shadow-sm">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b px-4 py-3">
-          <div className="flex items-center gap-2">
-            <ShoppingCart className="h-4 w-4" />
-            <span className="font-semibold">Cart</span>
-            {items.length > 0 && (
-              <Badge>{items.reduce((s, i) => s + i.quantity, 0)}</Badge>
-            )}
-          </div>
-          {items.length > 0 && (
-            <button className="text-xs text-destructive hover:underline" onClick={clearCart}>
-              Clear
-            </button>
-          )}
-        </div>
-
-        {/* Customer Search */}
-        <div className="border-b p-3">
-          <div className="relative">
-            <UserSearch className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              className="pl-8 text-xs"
-              placeholder="Search customer (optional)"
-              value={customerQuery}
-              onFocus={() => setShowCustomerSearch(true)}
-              onBlur={() => setTimeout(() => setShowCustomerSearch(false), 150)}
-              onChange={(e) => handleCustomerSearch(e.target.value)}
-            />
-          </div>
-          {showCustomerSearch && customerResults.length > 0 && (
-            <div className="absolute z-10 mt-1 w-72 rounded-md border bg-background shadow-lg">
-              {customerResults.map((c) => (
-                <button
-                  key={c.id}
-                  className="flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-muted"
-                  onClick={() => selectCustomer(c)}
-                >
-                  <span>{c.name}</span>
-                  <span className="text-xs text-muted-foreground">{c.phone}</span>
-                </button>
-              ))}
-            </div>
-          )}
-          {selectedCustomer && (
-            <div className="mt-1.5 flex items-center justify-between rounded bg-muted px-2 py-1">
-              <span className="text-xs font-medium">{selectedCustomer.name}</span>
-              <button className="text-xs text-muted-foreground hover:text-destructive" onClick={() => { setSelectedCustomer(null); setCustomerQuery(''); setCustomerResults([]); setShowCustomerSearch(false); }}>×</button>
-            </div>
-          )}
-        </div>
-
-        {/* Cart Items */}
-        <div className="flex-1 overflow-y-auto px-3 py-2">
-          {items.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
-              <ShoppingCart className="h-8 w-8 opacity-30" />
-              <p className="text-sm">Cart is empty</p>
-              <p className="text-xs">Scan a barcode or press Enter to add</p>
-            </div>
-          ) : (
-            items.map((item) => <CartItemComponent key={item.product.id} item={item} />)
-          )}
-        </div>
-
-        {/* Summary */}
-        <div className="border-t p-3 space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Subtotal</span>
-            <span>{formatCurrency(getSubtotal())}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">GST</span>
-            <span>{formatCurrency(getTaxAmount())}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Percent className="h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              className="h-7 text-xs"
-              type="number"
-              min="0"
-              placeholder="Discount (₹)"
-              value={discountInput}
-              onChange={(e) => handleDiscountChange(e.target.value)}
-            />
-          </div>
-          {discountAmount > 0 && (
-            <div className="flex justify-between text-sm text-green-600">
-              <span>Discount</span>
-              <span>- {formatCurrency(discountAmount)}</span>
-            </div>
-          )}
-          <div className="flex justify-between border-t pt-2 font-bold">
-            <span>Total</span>
-            <span className="text-primary text-lg">{formatCurrency(getTotalAmount())}</span>
-          </div>
-
-          <Button
-            className="w-full"
-            disabled={items.length === 0}
-            onClick={() => setPaymentOpen(true)}
-          >
-            Checkout
-          </Button>
-        </div>
+      {/* RIGHT: Cart — desktop fixed panel */}
+      <div className="hidden w-80 flex-shrink-0 lg:flex lg:flex-col">
+        {cartPanel}
       </div>
+
+      {/* Mobile cart slide-up drawer */}
+      <div
+        className={`fixed inset-x-0 bottom-0 z-30 flex flex-col bg-card transition-transform duration-300 lg:hidden ${
+          showMobileCart ? 'translate-y-0' : 'translate-y-full'
+        }`}
+        style={{ maxHeight: '85vh', borderRadius: '1rem 1rem 0 0', border: '1px solid hsl(var(--border))' }}
+      >
+        {cartPanel}
+      </div>
+
+      {/* Mobile floating cart button */}
+      {!showMobileCart && (
+        <button
+          className="fixed bottom-5 right-5 z-20 flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg lg:hidden"
+          onClick={() => setShowMobileCart(true)}
+        >
+          <ShoppingCart className="h-4 w-4" />
+          {cartCount > 0 ? (
+            <span>{cartCount} item{cartCount !== 1 ? 's' : ''} · {formatCurrency(getTotalAmount())}</span>
+          ) : (
+            <span>Cart</span>
+          )}
+        </button>
+      )}
 
       <PaymentModal
         open={paymentOpen}
