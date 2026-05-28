@@ -1,0 +1,577 @@
+# Invofy — Full Deployment Guide
+## DigitalOcean Server + GoDaddy Domain
+
+---
+
+## Overview
+
+| Component  | Technology         | How it runs on server          |
+|------------|--------------------|-------------------------------|
+| Frontend   | React + Vite       | Static files served by Nginx  |
+| Backend    | NestJS (Node.js)   | PM2 process on port 3000      |
+| Database   | PostgreSQL         | Installed on the same Droplet |
+| Web Server | Nginx              | Reverse proxy + static host   |
+| SSL        | Let's Encrypt      | Free HTTPS via Certbot        |
+
+**Domain plan:**
+- `yourdomain.com` → serves the React frontend
+- `api.yourdomain.com` → proxies to NestJS backend (port 3000)
+
+Replace every occurrence of `yourdomain.com` with your actual GoDaddy domain throughout this guide.
+
+---
+
+## PHASE 1 — Buy & Create the Server (DigitalOcean)
+
+### Step 1.1 — Create a DigitalOcean Droplet
+
+1. Log in to [digitalocean.com](https://digitalocean.com)
+2. Click **Create → Droplets**
+3. Choose settings:
+   - **Region:** Select the region closest to your users (e.g., Bangalore → Bengaluru)
+   - **OS:** Ubuntu 22.04 LTS (x64)
+   - **Plan:** Basic → Regular → **$12/month (2 GB RAM, 1 vCPU, 50 GB SSD)** minimum for this app
+   - **Authentication:** SSH Key (recommended) or Password
+4. Click **Create Droplet**
+5. Note the **Droplet IP address** (e.g., `165.22.10.50`) — you will need it
+
+### Step 1.2 — (Optional but recommended) Point DigitalOcean Nameservers in GoDaddy
+
+This lets DigitalOcean manage all your DNS records (easier).
+
+In GoDaddy:
+1. Go to **My Products → Domains → yourdomain.com → DNS**
+2. Scroll to **Nameservers → Change**
+3. Select **Custom**
+4. Enter these three nameservers:
+   ```
+   ns1.digitalocean.com
+   ns2.digitalocean.com
+   ns3.digitalocean.com
+   ```
+5. Save — DNS propagation takes up to 24–48 hours
+
+If you prefer to manage DNS directly in GoDaddy (without switching nameservers), see **Phase 2 Option B** below.
+
+---
+
+## PHASE 2 — Point Your Domain to the Droplet
+
+### Option A — Using DigitalOcean DNS (if you switched nameservers in Step 1.2)
+
+In DigitalOcean → **Networking → Domains**:
+
+1. Click **Add Domain** → enter `yourdomain.com`
+2. Add DNS records:
+
+| Type | Hostname            | Value (Points To)   | TTL  |
+|------|---------------------|---------------------|------|
+| A    | `yourdomain.com`    | `165.22.10.50`      | 3600 |
+| A    | `www`               | `165.22.10.50`      | 3600 |
+| A    | `api`               | `165.22.10.50`      | 3600 |
+
+### Option B — Using GoDaddy DNS directly (if you did NOT switch nameservers)
+
+In GoDaddy → **My Products → Domains → yourdomain.com → DNS → Manage**:
+
+1. Edit or add these **A records**:
+
+| Type | Name    | Value           | TTL      |
+|------|---------|-----------------|----------|
+| A    | `@`     | `165.22.10.50`  | 1 Hour   |
+| A    | `www`   | `165.22.10.50`  | 1 Hour   |
+| A    | `api`   | `165.22.10.50`  | 1 Hour   |
+
+2. Save — wait 15–60 minutes for propagation
+
+---
+
+## PHASE 3 — First Login & Server Security Setup
+
+### Step 3.1 — SSH into your Droplet
+
+```bash
+ssh root@165.22.10.50
+```
+
+If you set a password during Droplet creation, use that. If SSH key, it logs in automatically.
+
+### Step 3.2 — Create a non-root user (security best practice)
+
+```bash
+adduser invofy
+usermod -aG sudo invofy
+# Copy SSH keys to new user (if using SSH key auth)
+rsync --archive --chown=invofy:invofy ~/.ssh /home/invofy
+```
+
+Switch to the new user for all remaining steps:
+```bash
+su - invofy
+```
+
+### Step 3.3 — Update the server
+
+```bash
+sudo apt update && sudo apt upgrade -y
+```
+
+### Step 3.4 — Configure firewall
+
+```bash
+sudo ufw allow OpenSSH
+sudo ufw allow 80
+sudo ufw allow 443
+sudo ufw enable
+sudo ufw status
+```
+
+---
+
+## PHASE 4 — Install Required Software
+
+### Step 4.1 — Install Node.js 20 LTS
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+node -v    # should print v20.x.x
+npm -v     # should print 10.x.x
+```
+
+### Step 4.2 — Install PM2 (process manager for Node.js)
+
+```bash
+sudo npm install -g pm2
+```
+
+### Step 4.3 — Install PostgreSQL
+
+```bash
+sudo apt install -y postgresql postgresql-contrib
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+```
+
+### Step 4.4 — Install Nginx
+
+```bash
+sudo apt install -y nginx
+sudo systemctl start nginx
+sudo systemctl enable nginx
+```
+
+### Step 4.5 — Install Certbot (SSL)
+
+```bash
+sudo apt install -y certbot python3-certbot-nginx
+```
+
+### Step 4.6 — Install Git
+
+```bash
+sudo apt install -y git
+```
+
+---
+
+## PHASE 5 — Set Up PostgreSQL Database
+
+```bash
+sudo -u postgres psql
+```
+
+Inside the PostgreSQL shell, run these commands:
+
+```sql
+CREATE USER invofy_user WITH PASSWORD 'YourStrongPassword123!';
+CREATE DATABASE invofy_db OWNER invofy_user;
+GRANT ALL PRIVILEGES ON DATABASE invofy_db TO invofy_user;
+\q
+```
+
+Test the connection:
+```bash
+psql -U invofy_user -d invofy_db -h localhost
+# Enter your password when prompted
+# Type \q to exit
+```
+
+---
+
+## PHASE 6 — Upload Your Code to the Server
+
+### Option A — Clone from GitHub (recommended)
+
+```bash
+cd /home/invofy
+git clone https://github.com/YOUR_USERNAME/Invofy.git
+cd Invofy
+```
+
+### Option B — Upload with SCP from your local machine
+
+Run this on your **local machine** (Windows PowerShell or Git Bash):
+```bash
+scp -r "C:/Git-hub-personal/Invofy" invofy@165.22.10.50:/home/invofy/
+```
+
+---
+
+## PHASE 7 — Configure and Build the Backend
+
+```bash
+cd /home/invofy/Invofy/backend
+```
+
+### Step 7.1 — Create the production .env file
+
+```bash
+nano .env
+```
+
+Paste this content (edit every value):
+
+```env
+DATABASE_URL="postgresql://invofy_user:YourStrongPassword123!@localhost:5432/invofy_db?schema=public"
+
+JWT_SECRET="paste-a-long-random-string-here-at-least-64-chars"
+JWT_EXPIRES_IN="7d"
+
+PORT=3000
+NODE_ENV=production
+
+FRONTEND_URL="https://yourdomain.com"
+```
+
+**Generate a secure JWT_SECRET:**
+```bash
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+```
+Copy the output and paste it as the JWT_SECRET value.
+
+Save and exit nano: `Ctrl+X → Y → Enter`
+
+### Step 7.2 — Install dependencies and build
+
+```bash
+npm install
+npm run build
+```
+
+### Step 7.3 — Run Prisma migrations (creates all tables)
+
+```bash
+npx prisma migrate deploy
+```
+
+### Step 7.4 — (Optional) Seed initial admin user
+
+```bash
+npx prisma db seed
+```
+
+If the seed fails (tsx not found):
+```bash
+npm install -g tsx
+npx prisma db seed
+```
+
+### Step 7.5 — Start the backend with PM2
+
+```bash
+pm2 start dist/main.js --name "invofy-api"
+pm2 save
+pm2 startup
+```
+
+Run the command that `pm2 startup` outputs (it starts with `sudo env PATH=...`).
+
+**Verify the backend is running:**
+```bash
+pm2 status
+curl http://localhost:3000/api/v1
+```
+
+---
+
+## PHASE 8 — Configure and Build the Frontend
+
+```bash
+cd /home/invofy/Invofy/frontend
+```
+
+### Step 8.1 — Create the production .env file
+
+```bash
+nano .env.production
+```
+
+Paste:
+```env
+VITE_API_URL=https://api.yourdomain.com/api/v1
+```
+
+Save and exit: `Ctrl+X → Y → Enter`
+
+### Step 8.2 — Install dependencies and build
+
+```bash
+npm install
+npm run build
+```
+
+This creates a `dist/` folder with all static files.
+
+### Step 8.3 — Copy the built files to Nginx's web root
+
+```bash
+sudo mkdir -p /var/www/invofy
+sudo cp -r dist/* /var/www/invofy/
+sudo chown -R www-data:www-data /var/www/invofy
+```
+
+---
+
+## PHASE 9 — Configure Nginx
+
+### Step 9.1 — Create Nginx site configuration
+
+```bash
+sudo nano /etc/nginx/sites-available/invofy
+```
+
+Paste this complete Nginx config:
+
+```nginx
+# ─── Frontend (yourdomain.com) ───────────────────────────────────────────────
+server {
+    listen 80;
+    server_name yourdomain.com www.yourdomain.com;
+
+    root /var/www/invofy;
+    index index.html;
+
+    # React Router — serve index.html for all routes
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Cache static assets
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+}
+
+# ─── Backend API (api.yourdomain.com) ────────────────────────────────────────
+server {
+    listen 80;
+    server_name api.yourdomain.com;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        client_max_body_size 10M;
+    }
+}
+```
+
+Save and exit: `Ctrl+X → Y → Enter`
+
+### Step 9.2 — Enable the site and test config
+
+```bash
+sudo ln -s /etc/nginx/sites-available/invofy /etc/nginx/sites-enabled/
+sudo nginx -t
+```
+
+You should see: `nginx: configuration file /etc/nginx/nginx.conf test is successful`
+
+```bash
+sudo systemctl reload nginx
+```
+
+### Step 9.3 — Test HTTP before enabling SSL
+
+Open a browser and visit:
+- `http://yourdomain.com` → should show the Invofy login page
+- `http://api.yourdomain.com/api/v1` → should return JSON
+
+If DNS hasn't propagated yet, test by visiting `http://165.22.10.50` directly.
+
+---
+
+## PHASE 10 — Enable HTTPS with Let's Encrypt (Free SSL)
+
+**Run only after DNS has fully propagated (domains resolve to your server IP).**
+
+```bash
+sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com -d api.yourdomain.com
+```
+
+Follow the prompts:
+- Enter your email address
+- Agree to Terms of Service: `A`
+- Certbot will automatically update your Nginx config with SSL settings
+
+**Verify SSL auto-renewal:**
+```bash
+sudo certbot renew --dry-run
+```
+
+After this, your Nginx config will be updated automatically with HTTPS. Your sites will be accessible at:
+- `https://yourdomain.com` ✅
+- `https://api.yourdomain.com` ✅
+
+---
+
+## PHASE 11 — Verify Everything is Working
+
+### Backend health check
+```bash
+curl https://api.yourdomain.com/api/v1
+```
+
+### Frontend
+Open `https://yourdomain.com` in a browser → Invofy login page should load.
+
+### PM2 process status
+```bash
+pm2 status
+pm2 logs invofy-api --lines 50
+```
+
+### Nginx status
+```bash
+sudo systemctl status nginx
+sudo tail -f /var/log/nginx/error.log
+```
+
+---
+
+## PHASE 12 — How to Update / Redeploy (Future Deployments)
+
+Every time you push code changes and want to update the server:
+
+```bash
+# SSH into the server
+ssh invofy@165.22.10.50
+
+cd /home/invofy/Invofy
+
+# Pull latest code
+git pull origin main
+
+# ── Rebuild Backend ──────────────────────────────────────
+cd backend
+npm install
+npm run build
+npx prisma migrate deploy    # only if there are new migrations
+pm2 restart invofy-api
+
+# ── Rebuild Frontend ─────────────────────────────────────
+cd ../frontend
+npm install
+npm run build
+sudo cp -r dist/* /var/www/invofy/
+sudo chown -R www-data:www-data /var/www/invofy
+```
+
+---
+
+## Quick Reference — All Important Paths
+
+| What                        | Path on Server                              |
+|-----------------------------|---------------------------------------------|
+| Project root                | `/home/invofy/Invofy/`                      |
+| Backend source              | `/home/invofy/Invofy/backend/`              |
+| Backend built files         | `/home/invofy/Invofy/backend/dist/`         |
+| Backend .env                | `/home/invofy/Invofy/backend/.env`          |
+| Frontend source             | `/home/invofy/Invofy/frontend/`             |
+| Frontend built files        | `/var/www/invofy/`                          |
+| Nginx site config           | `/etc/nginx/sites-available/invofy`         |
+| Nginx error logs            | `/var/log/nginx/error.log`                  |
+| SSL certificates            | `/etc/letsencrypt/live/yourdomain.com/`     |
+
+---
+
+## Quick Reference — Useful Commands
+
+```bash
+# PM2
+pm2 status                        # list all processes
+pm2 logs invofy-api               # live logs
+pm2 restart invofy-api            # restart backend
+pm2 stop invofy-api               # stop backend
+
+# Nginx
+sudo nginx -t                     # test config syntax
+sudo systemctl reload nginx       # apply config changes
+sudo systemctl restart nginx      # full restart
+
+# PostgreSQL
+sudo -u postgres psql             # open postgres shell
+\l                                # list databases
+\c invofy_db                      # connect to invofy_db
+\dt                               # list tables
+\q                                # quit
+
+# Certbot
+sudo certbot renew                # manually renew SSL
+sudo certbot certificates         # list all certificates
+
+# Server disk / memory
+df -h                             # disk usage
+free -h                           # RAM usage
+htop                              # live CPU + RAM monitor (install: sudo apt install htop)
+```
+
+---
+
+## Troubleshooting
+
+### Frontend shows blank page
+- Open browser DevTools → Console tab → check for errors
+- Likely `VITE_API_URL` is wrong in `frontend/.env.production` — must be `https://api.yourdomain.com/api/v1`
+- Rebuild frontend and copy to `/var/www/invofy/`
+
+### API returns 502 Bad Gateway
+- Backend (PM2) is not running: `pm2 status` → `pm2 restart invofy-api`
+- Check logs: `pm2 logs invofy-api --lines 100`
+- Ensure backend `.env` has the correct `DATABASE_URL`
+
+### SSL certificate error / Certbot fails
+- DNS hasn't propagated yet — wait and retry
+- Verify DNS: `nslookup yourdomain.com` should return your Droplet IP
+- Check Nginx config: `sudo nginx -t`
+
+### Database connection refused
+- PostgreSQL not running: `sudo systemctl start postgresql`
+- Wrong password in `DATABASE_URL`
+- Test: `psql -U invofy_user -d invofy_db -h localhost`
+
+### CORS errors in browser
+- Make sure `FRONTEND_URL` in backend `.env` is exactly `https://yourdomain.com` (no trailing slash)
+- Restart backend after changing .env: `pm2 restart invofy-api`
+
+---
+
+## Estimated Time
+
+| Phase                              | Time      |
+|------------------------------------|-----------|
+| Create Droplet + DNS setup         | 15 min    |
+| DNS propagation                    | 15 min–2 hrs |
+| Server setup (Phases 3–5)          | 20 min    |
+| Upload code + build backend        | 15 min    |
+| Build frontend + configure Nginx   | 10 min    |
+| SSL setup                          | 5 min     |
+| **Total (excluding DNS wait)**     | **~65 min** |
