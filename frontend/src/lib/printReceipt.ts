@@ -62,91 +62,93 @@ export function printReceiptBrowser(bill: Bill): void {
       ? `${qty} x ${formatCurrency(mrp)} (saved ${formatCurrency(disc)})`
       : `${qty} x ${formatCurrency(sold)}`;
     return `
-    <div class="item">
-      <div class="row">
-        <span class="iname">${i + 1}. ${item.product?.name ?? item.productId}</span>
-        <span class="iamt">${formatCurrency(Number(item.totalPrice))}</span>
+    <div class="rp-item">
+      <div class="rp-row">
+        <span class="rp-iname">${i + 1}. ${item.product?.name ?? item.productId}</span>
+        <span class="rp-iamt">${formatCurrency(Number(item.totalPrice))}</span>
       </div>
-      <div class="isub">${sub}</div>
+      <div class="rp-isub">${sub}</div>
     </div>`;
   }).join('');
 
   const discountRow = Number(bill.discountAmount) > 0
-    ? `<div class="row"><span>Discount</span><span>-${formatCurrency(Number(bill.discountAmount))}</span></div>`
+    ? `<div class="rp-row"><span>Discount</span><span>-${formatCurrency(Number(bill.discountAmount))}</span></div>`
     : '';
   const taxRow = Number(bill.taxAmount) > 0
-    ? `<div class="row"><span>GST</span><span>${formatCurrency(Number(bill.taxAmount))}</span></div>`
+    ? `<div class="rp-row"><span>GST</span><span>${formatCurrency(Number(bill.taxAmount))}</span></div>`
     : '';
   const customerRow = bill.customer ? `<div>Customer : ${bill.customer.name}</div>` : '';
-  const gstinRow    = store.gstin   ? `<div class="c">GSTIN: ${store.gstin}</div>`    : '';
+  const gstinRow    = store.gstin   ? `<div class="rp-c">GSTIN: ${store.gstin}</div>` : '';
 
-  const html = `<!DOCTYPE html>
-<html><head>
-  <meta charset="UTF-8"/>
-  <title>${bill.billNumber}</title>
-  <style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:'Courier New',monospace;font-size:12px;line-height:1.6}
-    .c{text-align:center}
-    .row{display:flex;justify-content:space-between;gap:4px}
-    .bold{font-weight:bold}
-    .xl{font-size:14px}
-    .lg{font-size:13px}
-    .item{margin-bottom:3px}
-    .iname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
-    .iamt{flex-shrink:0;white-space:nowrap;font-weight:600}
-    .isub{padding-left:8px;font-size:10px;color:#333}
-    .sep{border-top:1px solid #000;margin:4px 0}
-    .dash{border-top:1px dashed #000;margin:4px 0}
-    @page{size:80mm auto;margin:3mm 4mm}
-  </style>
-</head><body>
-  <div class="c bold xl">${store.name}</div>
-  <div class="c">${store.address}</div>
-  <div class="c">Tel: ${store.phone}</div>
-  ${gstinRow}
-  <div class="sep"></div>
-  <div class="c bold">TAX RECEIPT</div>
-  <div class="sep"></div>
-  <div>Bill No : ${bill.billNumber}</div>
-  <div>Date    : ${new Date(bill.createdAt).toLocaleString('en-IN')}</div>
-  <div>Cashier : ${bill.user?.name ?? '—'}</div>
-  ${customerRow}
-  <div>Payment : ${bill.paymentMethod}</div>
-  <div class="dash"></div>
-  ${itemRows}
-  <div class="dash"></div>
-  <div class="row"><span>Subtotal</span><span>${formatCurrency(Number(bill.subtotal))}</span></div>
-  ${taxRow}
-  ${discountRow}
-  <div class="sep"></div>
-  <div class="row bold lg"><span>TOTAL</span><span>${formatCurrency(Number(bill.totalAmount))}</span></div>
-  <div class="sep"></div>
-  <div class="c" style="margin:4px 0">${barcodeSvg}</div>
-  <div class="c bold">** Thank you for shopping! **</div>
-  <div class="c">Please visit us again</div>
-</body></html>`;
+  const ID = 'invofy-receipt-print';
 
-  // Use iframe in the main document so Chrome uses the same printer context as Ctrl+P
-  const FRAME_ID = 'invofy-print-frame';
-  const existing = document.getElementById(FRAME_ID);
-  if (existing) existing.remove();
+  // Remove any previous print container
+  document.getElementById(ID)?.remove();
 
-  const iframe = document.createElement('iframe');
-  iframe.id = FRAME_ID;
-  iframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;border:none;';
-  document.body.appendChild(iframe);
+  const container = document.createElement('div');
+  container.id = ID;
+  container.innerHTML = `
+    <style>
+      /* Screen: hide receipt container */
+      #${ID} { display: none; }
 
-  const doc = iframe.contentDocument ?? iframe.contentWindow?.document;
-  if (!doc) { iframe.remove(); return; }
-  doc.open();
-  doc.write(html);
-  doc.close();
+      /* Print: hide everything else, show only receipt */
+      @media print {
+        body > *:not(#${ID}) { display: none !important; }
+        #${ID} {
+          display: block !important;
+          font-family: 'Courier New', monospace;
+          font-size: 12px;
+          line-height: 1.6;
+          color: #000;
+        }
+        @page { size: 80mm auto; margin: 3mm 4mm; }
+        .rp-c  { text-align: center; }
+        .rp-row{ display: flex; justify-content: space-between; gap: 4px; }
+        .rp-bold { font-weight: bold; }
+        .rp-xl { font-size: 14px; }
+        .rp-lg { font-size: 13px; }
+        .rp-item { margin-bottom: 3px; }
+        .rp-iname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+        .rp-iamt  { flex-shrink: 0; white-space: nowrap; font-weight: 600; }
+        .rp-isub  { padding-left: 8px; font-size: 10px; color: #333; }
+        .rp-sep  { border-top: 1px solid #000; margin: 4px 0; }
+        .rp-dash { border-top: 1px dashed #000; margin: 4px 0; }
+      }
+    </style>
 
-  setTimeout(() => {
-    iframe.contentWindow?.print();
-    setTimeout(() => iframe.remove(), 2000);
-  }, 500);
+    <div class="rp-c rp-bold rp-xl">${store.name}</div>
+    <div class="rp-c">${store.address}</div>
+    <div class="rp-c">Tel: ${store.phone}</div>
+    ${gstinRow}
+    <div class="rp-sep"></div>
+    <div class="rp-c rp-bold">TAX RECEIPT</div>
+    <div class="rp-sep"></div>
+    <div>Bill No : ${bill.billNumber}</div>
+    <div>Date    : ${new Date(bill.createdAt).toLocaleString('en-IN')}</div>
+    <div>Cashier : ${bill.user?.name ?? '—'}</div>
+    ${customerRow}
+    <div>Payment : ${bill.paymentMethod}</div>
+    <div class="rp-dash"></div>
+    ${itemRows}
+    <div class="rp-dash"></div>
+    <div class="rp-row"><span>Subtotal</span><span>${formatCurrency(Number(bill.subtotal))}</span></div>
+    ${taxRow}
+    ${discountRow}
+    <div class="rp-sep"></div>
+    <div class="rp-row rp-bold rp-lg"><span>TOTAL</span><span>${formatCurrency(Number(bill.totalAmount))}</span></div>
+    <div class="rp-sep"></div>
+    <div class="rp-c" style="margin:4px 0">${barcodeSvg}</div>
+    <div class="rp-c rp-bold">** Thank you for shopping! **</div>
+    <div class="rp-c">Please visit us again</div>
+  `;
+
+  document.body.appendChild(container);
+
+  // window.print() on the main window — the only call that respects --kiosk-printing
+  window.print();
+
+  setTimeout(() => container.remove(), 1000);
 }
 
 export async function printReceipt(bill: Bill): Promise<void> {
