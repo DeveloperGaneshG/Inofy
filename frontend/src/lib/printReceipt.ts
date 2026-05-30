@@ -59,7 +59,7 @@ export function printReceiptBrowser(bill: Bill): void {
     const qty  = item.quantity;
     const disc = mrp > sold ? (mrp - sold) * qty : 0;
     const sub  = disc > 0
-      ? `${qty} x ${formatCurrency(mrp)} <span class="disc">(-${formatCurrency(disc)})</span>`
+      ? `${qty} x ${formatCurrency(mrp)} (saved ${formatCurrency(disc)})`
       : `${qty} x ${formatCurrency(sold)}`;
     return `
     <div class="item">
@@ -86,21 +86,19 @@ export function printReceiptBrowser(bill: Bill): void {
   <title>${bill.billNumber}</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
-    html,body{width:80mm;overflow-x:hidden}
-    body{font-family:'Courier New',monospace;font-size:13px;line-height:1.6;padding:2mm 1mm}
+    body{font-family:'Courier New',monospace;font-size:12px;line-height:1.6}
     .c{text-align:center}
     .row{display:flex;justify-content:space-between;gap:4px}
     .bold{font-weight:bold}
-    .xl{font-size:15px}
-    .lg{font-size:14px}
-    .disc{color:#16a34a}
-    .item{margin-bottom:4px}
-    .iname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+    .xl{font-size:14px}
+    .lg{font-size:13px}
+    .item{margin-bottom:3px}
+    .iname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
     .iamt{flex-shrink:0;white-space:nowrap;font-weight:600}
-    .isub{padding-left:10px;font-size:11px;color:#333}
+    .isub{padding-left:8px;font-size:10px;color:#333}
     .sep{border-top:1px solid #000;margin:4px 0}
     .dash{border-top:1px dashed #000;margin:4px 0}
-    @page{size:80mm auto;margin:0}
+    @page{size:80mm auto;margin:3mm 4mm}
   </style>
 </head><body>
   <div class="c bold xl">${store.name}</div>
@@ -124,17 +122,31 @@ export function printReceiptBrowser(bill: Bill): void {
   <div class="sep"></div>
   <div class="row bold lg"><span>TOTAL</span><span>${formatCurrency(Number(bill.totalAmount))}</span></div>
   <div class="sep"></div>
-  <div class="c" style="margin:5px 0">${barcodeSvg}</div>
+  <div class="c" style="margin:4px 0">${barcodeSvg}</div>
   <div class="c bold">** Thank you for shopping! **</div>
   <div class="c">Please visit us again</div>
 </body></html>`;
 
-  const win = window.open('', '_blank', 'width=302,height=600,toolbar=0,menubar=0,scrollbars=0');
-  if (!win) { alert('Popup blocked — please allow popups for this site.'); return; }
-  win.document.write(html);
-  win.document.close();
-  win.focus();
-  setTimeout(() => { win.print(); win.close(); }, 400);
+  // Use iframe in the main document so Chrome uses the same printer context as Ctrl+P
+  const FRAME_ID = 'invofy-print-frame';
+  const existing = document.getElementById(FRAME_ID);
+  if (existing) existing.remove();
+
+  const iframe = document.createElement('iframe');
+  iframe.id = FRAME_ID;
+  iframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;border:none;';
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentDocument ?? iframe.contentWindow?.document;
+  if (!doc) { iframe.remove(); return; }
+  doc.open();
+  doc.write(html);
+  doc.close();
+
+  setTimeout(() => {
+    iframe.contentWindow?.print();
+    setTimeout(() => iframe.remove(), 2000);
+  }, 500);
 }
 
 export async function printReceipt(bill: Bill): Promise<void> {

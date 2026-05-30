@@ -60,25 +60,20 @@ export default function ReceiptPreviewModal({ bill, onClose, onNewBill, onViewIn
           <div>Payment : {bill.paymentMethod}</div>
           <div>------------------------------------------</div>
 
-          <div className="grid grid-cols-3 font-bold text-center">
-            <span className="text-left">ITEM / QTY</span><span>DISC</span><span className="text-right">AMT</span>
-          </div>
-          <div>------------------------------------------</div>
-
           {bill.items.map((item, i) => {
             const mrp = Number(item.product?.mrp ?? item.unitPrice);
             const sold = Number(item.unitPrice);
             const qty = item.quantity;
-            const discPerUnit = mrp > sold ? mrp - sold : 0;
-            const totalDisc = discPerUnit * qty;
-            const totalAmt = Number(item.totalPrice);
+            const disc = mrp > sold ? (mrp - sold) * qty : 0;
             return (
               <div key={i} className="mb-1">
-                <div className="truncate font-medium">{(i + 1).toString().padStart(2, ' ')}. {item.product?.name ?? item.productId}</div>
-                <div className="grid grid-cols-3 pl-3 text-center items-center">
-                  <span className="text-left text-[10px]">{qty} x {formatCurrency(mrp)}</span>
-                  <span className="text-[10px] text-green-700">{totalDisc > 0 ? formatCurrency(totalDisc) : '—'}</span>
-                  <span className="text-right font-medium">{formatCurrency(totalAmt)}</span>
+                <div className="flex justify-between font-medium">
+                  <span className="truncate flex-1 min-w-0">{i + 1}. {item.product?.name ?? item.productId}</span>
+                  <span className="shrink-0 ml-2">{formatCurrency(Number(item.totalPrice))}</span>
+                </div>
+                <div className="pl-3 text-[10px] text-gray-500">
+                  {qty} x {formatCurrency(mrp)}
+                  {disc > 0 && <span className="text-green-700"> (saved {formatCurrency(disc)})</span>}
                 </div>
               </div>
             );
