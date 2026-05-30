@@ -10,6 +10,7 @@ export interface User {
   name: string;
   email: string;
   role: Role;
+  isActive: boolean;
   createdAt: string;
 }
 

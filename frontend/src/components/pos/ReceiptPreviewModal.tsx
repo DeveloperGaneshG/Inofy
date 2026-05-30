@@ -6,6 +6,7 @@ import { getStoreSettings } from '@/lib/storeSettings';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Printer } from 'lucide-react';
+import { printReceiptBrowser } from '@/lib/printReceipt';
 
 interface Props {
   bill: Bill | null;
@@ -120,7 +121,7 @@ export default function ReceiptPreviewModal({ bill, onClose, onNewBill, onViewIn
         <DialogFooter className="flex gap-2 px-4 pb-4 pt-2 no-print">
           <Button variant="outline" size="sm" onClick={onViewInvoice}>View Invoice</Button>
           <Button variant="outline" size="sm" onClick={onNewBill}>New Bill</Button>
-          <Button size="sm" onClick={() => window.print()}>
+          <Button size="sm" onClick={() => printReceiptBrowser(bill)}>
             <Printer className="mr-1 h-4 w-4" /> Print
           </Button>
         </DialogFooter>

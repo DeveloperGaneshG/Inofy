@@ -16,6 +16,7 @@ import {
   CalendarX2,
   ClipboardList,
   Shield,
+  UserCog,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
@@ -35,6 +36,10 @@ const navItems = [
   { to: '/inventory-adjustments', label: 'Adjustments', icon: ClipboardList },
   { to: '/audit-logs', label: 'Audit Logs', icon: Shield },
   { to: '/settings', label: 'Settings', icon: Settings },
+];
+
+const adminNavItems = [
+  { to: '/users', label: 'Users', icon: UserCog },
 ];
 
 interface Props {
@@ -91,6 +96,35 @@ export default function Sidebar({ onClose }: Props) {
             </li>
           ))}
         </ul>
+
+        {user?.role === 'ADMIN' && (
+          <>
+            <p className="mt-4 mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Admin
+            </p>
+            <ul className="space-y-1">
+              {adminNavItems.map(({ to, label, icon: Icon }) => (
+                <li key={to}>
+                  <NavLink
+                    to={to}
+                    onClick={onClose}
+                    className={({ isActive }) =>
+                      cn(
+                        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+                        isActive
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                      )
+                    }
+                  >
+                    <Icon className="h-4 w-4" />
+                    {label}
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </nav>
 
       <div className="border-t p-3">

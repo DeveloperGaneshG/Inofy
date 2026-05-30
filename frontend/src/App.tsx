@@ -15,6 +15,7 @@ import CreditBook from '@/pages/CreditBook';
 import ExpiryTracker from '@/pages/ExpiryTracker';
 import InventoryAdjustments from '@/pages/InventoryAdjustments';
 import AuditLogs from '@/pages/AuditLogs';
+import Users from '@/pages/Users';
 
 export default function App() {
   return (
@@ -35,6 +36,7 @@ export default function App() {
             <Route path="/expiry" element={<ExpiryTracker />} />
             <Route path="/inventory-adjustments" element={<InventoryAdjustments />} />
             <Route path="/audit-logs" element={<AuditLogs />} />
+            <Route path="/users" element={<Users />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
         </Route>
