@@ -53,28 +53,32 @@ export function printReceiptBrowser(bill: Bill): void {
   const store = getStoreSettings();
   const barcodeSvg = generateBarcodeSvg(bill.billNumber);
 
-  const itemRows = bill.items.map((item) => {
-    const mrp = Number(item.product?.mrp ?? item.unitPrice);
+  const itemRows = bill.items.map((item, i) => {
+    const mrp  = Number(item.product?.mrp ?? item.unitPrice);
     const sold = Number(item.unitPrice);
-    const qty = item.quantity;
+    const qty  = item.quantity;
     const disc = mrp > sold ? (mrp - sold) * qty : 0;
+    const sub  = disc > 0
+      ? `${qty} x ${formatCurrency(mrp)} <span class="disc">(-${formatCurrency(disc)})</span>`
+      : `${qty} x ${formatCurrency(sold)}`;
     return `
-    <div class="item-name">${item.product?.name ?? item.productId}</div>
-    <div class="row indent">
-      <span>${qty} x ${formatCurrency(mrp)}</span>
-      ${disc > 0 ? `<span class="disc">-${formatCurrency(disc)}</span>` : '<span></span>'}
-      <span>${formatCurrency(Number(item.totalPrice))}</span>
+    <div class="item">
+      <div class="row">
+        <span class="iname">${i + 1}. ${item.product?.name ?? item.productId}</span>
+        <span class="iamt">${formatCurrency(Number(item.totalPrice))}</span>
+      </div>
+      <div class="isub">${sub}</div>
     </div>`;
   }).join('');
 
   const discountRow = Number(bill.discountAmount) > 0
-    ? `<div class="row"><span>Bill Discount</span><span>-${formatCurrency(Number(bill.discountAmount))}</span></div>`
+    ? `<div class="row"><span>Discount</span><span>-${formatCurrency(Number(bill.discountAmount))}</span></div>`
     : '';
   const taxRow = Number(bill.taxAmount) > 0
     ? `<div class="row"><span>GST</span><span>${formatCurrency(Number(bill.taxAmount))}</span></div>`
     : '';
   const customerRow = bill.customer ? `<div>Customer : ${bill.customer.name}</div>` : '';
-  const gstinRow = store.gstin ? `<div class="center">GSTIN: ${store.gstin}</div>` : '';
+  const gstinRow    = store.gstin   ? `<div class="c">GSTIN: ${store.gstin}</div>`    : '';
 
   const html = `<!DOCTYPE html>
 <html><head>
@@ -82,34 +86,35 @@ export function printReceiptBrowser(bill: Bill): void {
   <title>${bill.billNumber}</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:'Courier New',monospace;font-size:13px;line-height:1.55;padding:3mm}
-    .center{text-align:center}
-    .row{display:flex;justify-content:space-between}
+    html,body{width:80mm;overflow-x:hidden}
+    body{font-family:'Courier New',monospace;font-size:13px;line-height:1.6;padding:2mm 3mm}
+    .c{text-align:center}
+    .row{display:flex;justify-content:space-between;gap:4px}
     .bold{font-weight:bold}
-    .xl{font-size:16px}
+    .xl{font-size:15px}
     .lg{font-size:14px}
-    .indent{padding-left:8px}
     .disc{color:#16a34a}
-    .item-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .item{margin-bottom:4px}
+    .iname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+    .iamt{flex-shrink:0;white-space:nowrap;font-weight:600}
+    .isub{padding-left:10px;font-size:11px;color:#333}
     .sep{border-top:1px solid #000;margin:4px 0}
     .dash{border-top:1px dashed #000;margin:4px 0}
     @page{size:80mm auto;margin:0}
   </style>
 </head><body>
-  <div class="center bold xl">${store.name}</div>
-  <div class="center">${store.address}</div>
-  <div class="center">Tel: ${store.phone}</div>
+  <div class="c bold xl">${store.name}</div>
+  <div class="c">${store.address}</div>
+  <div class="c">Tel: ${store.phone}</div>
   ${gstinRow}
   <div class="sep"></div>
-  <div class="center bold">TAX RECEIPT</div>
+  <div class="c bold">TAX RECEIPT</div>
   <div class="sep"></div>
   <div>Bill No : ${bill.billNumber}</div>
   <div>Date    : ${new Date(bill.createdAt).toLocaleString('en-IN')}</div>
   <div>Cashier : ${bill.user?.name ?? '—'}</div>
   ${customerRow}
   <div>Payment : ${bill.paymentMethod}</div>
-  <div class="dash"></div>
-  <div class="row bold"><span>ITEM / QTY</span><span>DISC</span><span>AMT</span></div>
   <div class="dash"></div>
   ${itemRows}
   <div class="dash"></div>
@@ -119,17 +124,17 @@ export function printReceiptBrowser(bill: Bill): void {
   <div class="sep"></div>
   <div class="row bold lg"><span>TOTAL</span><span>${formatCurrency(Number(bill.totalAmount))}</span></div>
   <div class="sep"></div>
-  <div style="text-align:center;margin:6px 0">${barcodeSvg}</div>
-  <div class="center bold" style="margin-top:6px">** Thank you for shopping! **</div>
-  <div class="center">Please visit us again</div>
+  <div class="c" style="margin:5px 0">${barcodeSvg}</div>
+  <div class="c bold">** Thank you for shopping! **</div>
+  <div class="c">Please visit us again</div>
 </body></html>`;
 
-  const win = window.open('', '_blank', 'width=340,height=700,toolbar=0,menubar=0,scrollbars=1');
+  const win = window.open('', '_blank', 'width=302,height=600,toolbar=0,menubar=0,scrollbars=0');
   if (!win) { alert('Popup blocked — please allow popups for this site.'); return; }
   win.document.write(html);
   win.document.close();
   win.focus();
-  setTimeout(() => { win.print(); win.close(); }, 350);
+  setTimeout(() => { win.print(); win.close(); }, 400);
 }
 
 export async function printReceipt(bill: Bill): Promise<void> {
