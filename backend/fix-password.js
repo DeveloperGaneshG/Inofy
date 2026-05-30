@@ -4,19 +4,33 @@ const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
 
 async function main() {
-  const hash = await bcrypt.hash('admin123', 10);
-  const user = await prisma.user.upsert({
+  const adminHash = await bcrypt.hash('admin123', 10);
+  const admin = await prisma.user.upsert({
     where: { email: 'admin@invofy.com' },
-    update: { password: hash },
+    update: { password: adminHash },
     create: {
       name: 'Admin',
       email: 'admin@invofy.com',
-      password: hash,
+      password: adminHash,
       role: 'ADMIN',
       isActive: true,
     },
   });
-  console.log('Done. User:', user.email, '| Password set to: admin123');
+  console.log('Done. User:', admin.email, '| Password set to: admin123');
+
+  const chanduHash = await bcrypt.hash('Chandu@7957', 10);
+  const chandu = await prisma.user.upsert({
+    where: { email: 'chandu@invofy.com' },
+    update: { password: chanduHash },
+    create: {
+      name: 'Chandu',
+      email: 'chandu@invofy.com',
+      password: chanduHash,
+      role: 'ADMIN',
+      isActive: true,
+    },
+  });
+  console.log('Done. User:', chandu.email, '| Password set to: Chandu@7957');
 }
 
 main().catch(console.error).finally(() => prisma.$disconnect());
