@@ -87,7 +87,7 @@ export function printReceiptBrowser(bill: Bill): void {
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     html,body{width:80mm;overflow-x:hidden}
-    body{font-family:'Courier New',monospace;font-size:13px;line-height:1.6;padding:2mm 3mm}
+    body{font-family:'Courier New',monospace;font-size:13px;line-height:1.6;padding:2mm 1mm}
     .c{text-align:center}
     .row{display:flex;justify-content:space-between;gap:4px}
     .bold{font-weight:bold}
