@@ -36,6 +36,18 @@
   .no-print { display: none !important; }
   .print-only { display: block !important; }
   body { background: white; }
+  /* Hide dialog overlay/backdrop */
+  [data-radix-dialog-overlay] { display: none !important; }
+  /* Receipt print — larger text, no scroll clipping */
+  .receipt-print-content {
+    zoom: 1.35;
+    max-height: none !important;
+    overflow: visible !important;
+    border: none !important;
+    margin: 0 auto !important;
+    padding: 2mm !important;
+    line-height: 1.8 !important;
+  }
 }
 
 .thermal-receipt {

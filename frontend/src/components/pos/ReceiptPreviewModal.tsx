@@ -6,7 +6,6 @@ import { getStoreSettings } from '@/lib/storeSettings';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Printer } from 'lucide-react';
-import { printReceipt } from '@/lib/printReceipt';
 
 interface Props {
   bill: Bill | null;
@@ -37,12 +36,12 @@ export default function ReceiptPreviewModal({ bill, onClose, onNewBill, onViewIn
   return (
     <Dialog open={!!bill} onOpenChange={onClose}>
       <DialogContent className="max-w-sm p-0 gap-0">
-        <DialogHeader className="px-4 pt-4 pb-2">
+        <DialogHeader className="px-4 pt-4 pb-2 no-print">
           <DialogTitle className="text-base">Receipt Preview</DialogTitle>
         </DialogHeader>
 
         {/* Receipt preview */}
-        <div className="mx-4 mb-2 max-h-[60vh] overflow-y-auto rounded border bg-white p-3 text-[11px] leading-5"
+        <div className="receipt-print-content mx-4 mb-2 max-h-[60vh] overflow-y-auto rounded border bg-white p-3 text-[11px] leading-5"
           style={{ fontFamily: '"Courier New", Courier, monospace' }}>
 
           <div className="text-center font-bold text-sm">{store.name}</div>
@@ -86,7 +85,9 @@ export default function ReceiptPreviewModal({ bill, onClose, onNewBill, onViewIn
 
           <div>------------------------------------------</div>
           <div className="flex justify-between"><span>Subtotal</span><span>{formatCurrency(Number(bill.subtotal))}</span></div>
-          <div className="flex justify-between"><span>GST</span><span>{formatCurrency(Number(bill.taxAmount))}</span></div>
+          {Number(bill.taxAmount) > 0 && (
+            <div className="flex justify-between"><span>GST</span><span>{formatCurrency(Number(bill.taxAmount))}</span></div>
+          )}
           {Number(bill.discountAmount) > 0 && (
             <div className="flex justify-between text-green-700"><span>Bill Discount</span><span>- {formatCurrency(Number(bill.discountAmount))}</span></div>
           )}
@@ -116,10 +117,10 @@ export default function ReceiptPreviewModal({ bill, onClose, onNewBill, onViewIn
           <div className="text-center">Please visit us again</div>
         </div>
 
-        <DialogFooter className="flex gap-2 px-4 pb-4 pt-2">
+        <DialogFooter className="flex gap-2 px-4 pb-4 pt-2 no-print">
           <Button variant="outline" size="sm" onClick={onViewInvoice}>View Invoice</Button>
           <Button variant="outline" size="sm" onClick={onNewBill}>New Bill</Button>
-          <Button size="sm" onClick={() => { void printReceipt(bill); onClose(); }}>
+          <Button size="sm" onClick={() => window.print()}>
             <Printer className="mr-1 h-4 w-4" /> Print
           </Button>
         </DialogFooter>

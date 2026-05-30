@@ -78,11 +78,7 @@ export const useCartStore = create<CartState>()((set, get) => ({
   setDiscount: (amount) => set({ discountAmount: amount }),
 
   getSubtotal: () => get().items.reduce((sum, item) => sum + item.totalPrice, 0),
-  getTaxAmount: () =>
-    get().items.reduce((sum, item) => {
-      const rate = (item.product.gstRate ?? 18) / 100;
-      return sum + item.totalPrice * rate;
-    }, 0),
+  getTaxAmount: () => 0,
   getTotalAmount: () =>
     Math.max(0, get().getSubtotal() + get().getTaxAmount() - get().discountAmount),
 }));

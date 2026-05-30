@@ -29,11 +29,7 @@ export class BillsService {
     }
 
     const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-    const taxAmount = items.reduce((sum, item) => {
-      const product = products.find((p) => p.id === item.productId)!;
-      const rate = Number(product.gstRate) / 100;
-      return sum + item.unitPrice * item.quantity * rate;
-    }, 0);
+    const taxAmount = 0;
     const baseTotal = subtotal + taxAmount - discountAmount;
 
     let pointsRedeemed = 0;
