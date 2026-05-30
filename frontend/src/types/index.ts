@@ -269,6 +269,21 @@ export interface InventoryAdjustment {
   createdAt: string;
 }
 
+export interface RepeatedCustomer {
+  customerId: string;
+  customerName: string;
+  phone: string;
+  entryDate: string | null;
+  totalBills: number;
+  totalSales: number;
+  repeatBills: number;
+  repeatSales: number;
+  abv: number;
+  earnedPoints: number;
+  redeemedPoints: number;
+  currentPoints: number;
+}
+
 export interface AuditLog {
   id: string;
   action: string;

@@ -86,7 +86,7 @@ export default function Purchases() {
         </Button>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {statusFilters.map((s) => (
           <Button
             key={s}
@@ -99,7 +99,7 @@ export default function Purchases() {
         ))}
       </div>
 
-      <div className="rounded-xl border bg-card">
+      <div className="rounded-xl border bg-card overflow-x-auto">
         {loading ? (
           <div className="flex h-32 items-center justify-center text-muted-foreground">Loading…</div>
         ) : (
@@ -195,7 +195,7 @@ export default function Purchases() {
           </DialogHeader>
           {detailPurchase && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 rounded-lg border p-4 text-sm">
+              <div className="grid grid-cols-1 gap-4 rounded-lg border p-4 text-sm sm:grid-cols-2">
                 <div>
                   <p className="text-xs text-muted-foreground">Supplier</p>
                   <p className="font-medium">{detailPurchase.supplier.name}</p>
@@ -223,8 +223,8 @@ export default function Purchases() {
                 )}
               </div>
 
-              <div className="rounded-lg border">
-                <div className="grid grid-cols-[1fr_60px_80px_80px_80px_80px] gap-2 border-b bg-muted/50 px-3 py-2 text-xs font-medium text-muted-foreground">
+              <div className="rounded-lg border overflow-x-auto">
+                <div className="grid grid-cols-[1fr_60px_80px_80px_80px_80px] gap-2 border-b bg-muted/50 px-3 py-2 text-xs font-medium text-muted-foreground" style={{minWidth: '480px'}}>
                   <span>Product</span>
                   <span>Qty</span>
                   <span>Cost</span>
@@ -233,7 +233,7 @@ export default function Purchases() {
                   <span>Expiry</span>
                 </div>
                 {detailPurchase.items.map((item) => (
-                  <div key={item.id} className="grid grid-cols-[1fr_60px_80px_80px_80px_80px] gap-2 border-b px-3 py-2 text-sm last:border-0">
+                  <div key={item.id} className="grid grid-cols-[1fr_60px_80px_80px_80px_80px] gap-2 border-b px-3 py-2 text-sm last:border-0" style={{minWidth: '480px'}}>
                     <div>
                       <p className="font-medium">{item.product.name}</p>
                       <p className="text-xs text-muted-foreground">{item.product.sku}</p>

@@ -76,7 +76,7 @@ export default function Invoices() {
         <Input className="pl-8" placeholder="Search bill no. or customer…" value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
 
-      <div className="rounded-xl border bg-card">
+      <div className="rounded-xl border bg-card overflow-x-auto">
         {loading ? (
           <div className="flex h-32 items-center justify-center text-muted-foreground">Loading…</div>
         ) : (

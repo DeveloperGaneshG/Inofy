@@ -111,7 +111,7 @@ export default function Suppliers() {
         <Input className="pl-8" placeholder="Search by name or phone…" value={search} onChange={(e) => handleSearch(e.target.value)} />
       </div>
 
-      <div className="rounded-xl border bg-card">
+      <div className="rounded-xl border bg-card overflow-x-auto">
         {loading ? (
           <div className="flex h-32 items-center justify-center text-muted-foreground">Loading…</div>
         ) : (
@@ -187,7 +187,7 @@ export default function Suppliers() {
               <Input {...register('name')} placeholder="Supplier company name" />
               {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <Label>Phone</Label>
                 <Input {...register('phone')} placeholder="+91 98765 43210" />

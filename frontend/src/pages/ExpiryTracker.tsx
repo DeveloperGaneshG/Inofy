@@ -266,7 +266,7 @@ export default function ExpiryTracker() {
       )}
 
       {/* [A] header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-50">
             <CalendarX2 className="h-5 w-5 text-red-600" />
@@ -276,7 +276,7 @@ export default function ExpiryTracker() {
             <p className="text-xs text-muted-foreground">Monitor and manage batch expiry dates</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={exportBatchesCSV} disabled={batches.length === 0}>
             <Download className="mr-1.5 h-4 w-4" />
             Export CSV
@@ -373,7 +373,7 @@ export default function ExpiryTracker() {
 
       {/* [E] batches table */}
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           {batchesLoading ? (
             <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
               Loading batches…
@@ -491,7 +491,7 @@ export default function ExpiryTracker() {
         </button>
 
         {logExpanded && (
-          <CardContent className="border-t p-0">
+          <CardContent className="border-t p-0 overflow-x-auto">
             {logLoading ? (
               <div className="flex h-24 items-center justify-center text-sm text-muted-foreground">
                 Loading log…

@@ -96,7 +96,7 @@ export default function Customers() {
         <Input className="pl-8" placeholder="Search by name or phone…" value={search} onChange={(e) => handleSearch(e.target.value)} />
       </div>
 
-      <div className="rounded-xl border bg-card">
+      <div className="rounded-xl border bg-card overflow-x-auto">
         {loading ? (
           <div className="flex h-32 items-center justify-center text-muted-foreground">Loading…</div>
         ) : (

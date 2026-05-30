@@ -39,6 +39,24 @@ export class ReportsController {
     return this.reportsService.getRevenue(from || defaultFrom, to || defaultTo);
   }
 
+  @Get('repeated-customers')
+  getRepeatedCustomers(
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('minBills') minBills?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const now = new Date();
+    const defaultFrom = new Date(now.getFullYear(), now.getMonth() - 2, 1).toISOString().split('T')[0];
+    const defaultTo = now.toISOString().split('T')[0];
+    return this.reportsService.getRepeatedCustomers(
+      from || defaultFrom,
+      to || defaultTo,
+      minBills ? +minBills : 2,
+      limit ? +limit : 200,
+    );
+  }
+
   @Get('inventory')
   getInventory() {
     return this.reportsService.getInventory();

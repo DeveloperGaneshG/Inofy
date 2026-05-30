@@ -37,7 +37,11 @@ const navItems = [
   { to: '/settings', label: 'Settings', icon: Settings },
 ];
 
-export default function Sidebar() {
+interface Props {
+  onClose?: () => void;
+}
+
+export default function Sidebar({ onClose }: Props) {
   const { user, logout } = useAuthStore();
   const [expiryAlertCount, setExpiryAlertCount] = useState(0);
 
@@ -48,7 +52,7 @@ export default function Sidebar() {
   }, []);
 
   return (
-    <aside className="flex h-screen w-60 flex-col border-r bg-white">
+    <aside className="flex h-screen w-64 flex-col border-r bg-white">
       <div className="flex items-center gap-3 border-b px-6 py-4">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
           <Store className="h-4 w-4 text-white" />
@@ -66,6 +70,7 @@ export default function Sidebar() {
               <NavLink
                 to={to}
                 end={to === '/'}
+                onClick={onClose}
                 className={({ isActive }) =>
                   cn(
                     'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
@@ -94,7 +99,7 @@ export default function Sidebar() {
           <p className="text-xs text-muted-foreground">{user?.role}</p>
         </div>
         <button
-          onClick={logout}
+          onClick={() => { logout(); onClose?.(); }}
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
         >
           <LogOut className="h-4 w-4" />
