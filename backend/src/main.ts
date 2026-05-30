@@ -7,44 +7,43 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor'
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // ── CORS ─────────────────────────────────────────────────────────────────
-  const allowedOrigins = [
-    /^http:\/\/localhost(:\d+)?$/,
-    'https://inofy-drab.vercel.app',
-    process.env.FRONTEND_URL,
-  ].filter(Boolean);
-
+  // CORS
   app.enableCors({
-    origin: allowedOrigins,
+    origin: [
+      'https://infovy.visionextech.in',
+      'http://localhost:5173',
+    ],
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
   });
 
-  // ── Global prefix ─────────────────────────────────────────────────────────
+  // Global API Prefix
   app.setGlobalPrefix('api/v1');
 
-  // ── Global pipes ──────────────────────────────────────────────────────────
+  // Validation
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,          // strip unknown properties
+      whitelist: true,
       forbidNonWhitelisted: true,
-      transform: true,          // auto-transform payloads to DTO classes
+      transform: true,
       transformOptions: {
         enableImplicitConversion: true,
       },
     }),
   );
 
-  // ── Global interceptors ───────────────────────────────────────────────────
+  // Response Wrapper
   app.useGlobalInterceptors(new ResponseInterceptor());
 
-  // ── Global filters ────────────────────────────────────────────────────────
+  // Exception Handler
   app.useGlobalFilters(new HttpExceptionFilter());
 
   const port = process.env.PORT ?? 3000;
+
   await app.listen(port);
-  console.log(`🚀 Invofy API running on http://localhost:${port}/api/v1`);
+
+  console.log(`🚀 Invofy API running on port ${port}`);
 }
 
 bootstrap();
