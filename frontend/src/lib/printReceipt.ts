@@ -80,43 +80,48 @@ export function printReceiptBrowser(bill: Bill): void {
   const customerRow = bill.customer ? `<div>Customer : ${bill.customer.name}</div>` : '';
   const gstinRow    = store.gstin   ? `<div class="rp-c">GSTIN: ${store.gstin}</div>` : '';
 
-  const ID = 'invofy-receipt-print';
+  const STYLE_ID = 'invofy-print-style';
+  const DIV_ID   = 'invofy-receipt-print';
 
-  // Remove any previous print container
-  document.getElementById(ID)?.remove();
+  // Remove any previous elements
+  document.getElementById(STYLE_ID)?.remove();
+  document.getElementById(DIV_ID)?.remove();
 
-  const container = document.createElement('div');
-  container.id = ID;
-  container.innerHTML = `
-    <style>
-      /* Screen: hide receipt container */
-      #${ID} { display: none; }
-
-      /* Print: hide everything else, show only receipt */
-      @media print {
-        body > *:not(#${ID}) { display: none !important; }
-        #${ID} {
-          display: block !important;
-          font-family: 'Courier New', monospace;
-          font-size: 12px;
-          line-height: 1.6;
-          color: #000;
-        }
-        @page { size: 80mm auto; margin: 3mm 4mm; }
-        .rp-c  { text-align: center; }
-        .rp-row{ display: flex; justify-content: space-between; gap: 4px; }
-        .rp-bold { font-weight: bold; }
-        .rp-xl { font-size: 14px; }
-        .rp-lg { font-size: 13px; }
-        .rp-item { margin-bottom: 3px; }
-        .rp-iname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
-        .rp-iamt  { flex-shrink: 0; white-space: nowrap; font-weight: 600; }
-        .rp-isub  { padding-left: 8px; font-size: 10px; color: #333; }
-        .rp-sep  { border-top: 1px solid #000; margin: 4px 0; }
-        .rp-dash { border-top: 1px dashed #000; margin: 4px 0; }
+  // @page MUST be in document.head — Chrome ignores it inside div style tags
+  const headStyle = document.createElement('style');
+  headStyle.id = STYLE_ID;
+  headStyle.textContent = `
+    @media print {
+      @page { size: 80mm auto; margin: 0; }
+      body > * { display: none !important; }
+      body > #${DIV_ID} { display: block !important; }
+      #${DIV_ID} {
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        line-height: 1.6;
+        padding: 3mm 2mm;
+        color: #000;
       }
-    </style>
+      .rp-c    { text-align: center; }
+      .rp-row  { display: flex; justify-content: space-between; gap: 4px; }
+      .rp-bold { font-weight: bold; }
+      .rp-xl   { font-size: 14px; }
+      .rp-lg   { font-size: 13px; }
+      .rp-item { margin-bottom: 3px; }
+      .rp-iname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+      .rp-iamt  { flex-shrink: 0; white-space: nowrap; font-weight: 600; }
+      .rp-isub  { padding-left: 8px; font-size: 10px; color: #444; }
+      .rp-sep   { border-top: 1px solid #000; margin: 4px 0; }
+      .rp-dash  { border-top: 1px dashed #000; margin: 4px 0; }
+    }
+    #${DIV_ID} { display: none; }
+  `;
+  document.head.appendChild(headStyle);
 
+  // Receipt content div (hidden on screen, visible during print via head style)
+  const div = document.createElement('div');
+  div.id = DIV_ID;
+  div.innerHTML = `
     <div class="rp-c rp-bold rp-xl">${store.name}</div>
     <div class="rp-c">${store.address}</div>
     <div class="rp-c">Tel: ${store.phone}</div>
@@ -142,13 +147,14 @@ export function printReceiptBrowser(bill: Bill): void {
     <div class="rp-c rp-bold">** Thank you for shopping! **</div>
     <div class="rp-c">Please visit us again</div>
   `;
+  document.body.appendChild(div);
 
-  document.body.appendChild(container);
-
-  // window.print() on the main window — the only call that respects --kiosk-printing
   window.print();
 
-  setTimeout(() => container.remove(), 1000);
+  setTimeout(() => {
+    headStyle.remove();
+    div.remove();
+  }, 1000);
 }
 
 export async function printReceipt(bill: Bill): Promise<void> {
