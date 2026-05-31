@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Store, Save } from 'lucide-react';
 import { Category } from '@/types';
 import { categoryService } from '@/services/categoryService';
 import { useAuthStore } from '@/store/authStore';
+import { getStoreSettings, saveStoreSettings } from '@/lib/storeSettings';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +13,19 @@ import { Separator } from '@/components/ui/separator';
 
 export default function Settings() {
   const { user } = useAuthStore();
+
+  // Store settings
+  const [store, setStore] = useState(getStoreSettings);
+  const [storeSaved, setStoreSaved] = useState(false);
+
+  const handleStoreSave = () => {
+    if (!store.name.trim()) return;
+    saveStoreSettings(store);
+    setStoreSaved(true);
+    setTimeout(() => setStoreSaved(false), 2000);
+  };
+
+  // Categories
   const [categories, setCategories] = useState<Category[]>([]);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Category | null>(null);
@@ -56,6 +70,58 @@ export default function Settings() {
   return (
     <div className="max-w-2xl space-y-6">
       <h1 className="text-2xl font-bold">Settings</h1>
+
+      {/* Store Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Store className="h-4 w-4" /> Store Settings
+          </CardTitle>
+          <CardDescription>Shown on every printed receipt and invoice</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label>Store Name *</Label>
+              <Input
+                value={store.name}
+                onChange={(e) => setStore((s) => ({ ...s, name: e.target.value }))}
+                placeholder="Your Mart Name"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Phone</Label>
+              <Input
+                value={store.phone}
+                onChange={(e) => setStore((s) => ({ ...s, phone: e.target.value }))}
+                placeholder="+91 98765 43210"
+              />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label>Address</Label>
+            <Input
+              value={store.address}
+              onChange={(e) => setStore((s) => ({ ...s, address: e.target.value }))}
+              placeholder="Street, Area, City"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>GSTIN <span className="text-muted-foreground text-xs">(optional)</span></Label>
+            <Input
+              value={store.gstin}
+              onChange={(e) => setStore((s) => ({ ...s, gstin: e.target.value }))}
+              placeholder="27XXXXX1234X1ZX"
+            />
+          </div>
+          <Button onClick={handleStoreSave} disabled={!store.name.trim()} className="w-full sm:w-auto">
+            <Save className="mr-1.5 h-4 w-4" />
+            {storeSaved ? 'Saved!' : 'Save Store Settings'}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Separator />
 
       {/* User Info */}
       <Card>

@@ -28,6 +28,7 @@ export default function Customers() {
   const [editing, setEditing] = useState<Customer | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deleteError, setDeleteError] = useState('');
   const [serverError, setServerError] = useState('');
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormData>({
@@ -64,9 +65,14 @@ export default function Customers() {
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    await customerService.delete(deleteTarget.id);
-    setDeleteTarget(null);
-    loadCustomers();
+    setDeleteError('');
+    try {
+      await customerService.delete(deleteTarget.id);
+      setDeleteTarget(null);
+      loadCustomers();
+    } catch (err: any) {
+      setDeleteError(err.response?.data?.message || 'Failed to delete customer');
+    }
   };
 
   const handleSearch = async (q: string) => {
@@ -178,8 +184,9 @@ export default function Customers() {
           <div className="w-full max-w-sm rounded-xl border bg-background p-6 shadow-xl">
             <h3 className="font-semibold">Delete Customer?</h3>
             <p className="mt-1 text-sm text-muted-foreground">Delete <strong>{deleteTarget.name}</strong>? This cannot be undone.</p>
+            {deleteError && <p className="mt-2 text-sm text-destructive">{deleteError}</p>}
             <div className="mt-4 flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+              <Button variant="outline" onClick={() => { setDeleteTarget(null); setDeleteError(''); }}>Cancel</Button>
               <Button variant="destructive" onClick={handleDelete}>Delete</Button>
             </div>
           </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { CalendarX2, Download, Settings2, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -421,7 +421,7 @@ export default function ExpiryTracker() {
                       <TableCell>
                         {batch.status === 'safe' ? (
                           <Button variant="ghost" size="sm" asChild>
-                            <a href="/purchases">View</a>
+                            <Link to="/purchases">View</Link>
                           </Button>
                         ) : (
                           <div className="flex gap-1">

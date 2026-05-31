@@ -29,6 +29,7 @@ export default function Suppliers() {
   const [editing, setEditing] = useState<Supplier | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Supplier | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deleteError, setDeleteError] = useState('');
   const [serverError, setServerError] = useState('');
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormData>({
@@ -77,9 +78,14 @@ export default function Suppliers() {
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    await supplierService.delete(deleteTarget.id);
-    setDeleteTarget(null);
-    loadSuppliers();
+    setDeleteError('');
+    try {
+      await supplierService.delete(deleteTarget.id);
+      setDeleteTarget(null);
+      loadSuppliers();
+    } catch (err: any) {
+      setDeleteError(err.response?.data?.message || 'Failed to delete supplier');
+    }
   };
 
   const handleSearch = async (q: string) => {
@@ -225,8 +231,9 @@ export default function Suppliers() {
                 <span className="text-amber-600"> This supplier has purchases — it will be deactivated instead.</span>
               )}
             </p>
+            {deleteError && <p className="mt-2 text-sm text-destructive">{deleteError}</p>}
             <div className="mt-4 flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+              <Button variant="outline" onClick={() => { setDeleteTarget(null); setDeleteError(''); }}>Cancel</Button>
               <Button variant="destructive" onClick={handleDelete}>
                 {(deleteTarget._count?.purchases ?? 0) > 0 ? 'Deactivate' : 'Delete'}
               </Button>

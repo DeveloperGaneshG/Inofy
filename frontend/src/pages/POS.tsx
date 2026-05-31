@@ -17,6 +17,7 @@ import { useNavigate } from 'react-router-dom';
 export default function POS() {
   const navigate = useNavigate();
   const searchRef = useRef<HTMLInputElement>(null);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -67,6 +68,11 @@ export default function POS() {
 
   const addToCartAndReset = useCallback((product: Product) => {
     if (product.stock <= 0) return;
+    // Cancel any pending debounced search so it doesn't fire after cart is reset
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+      searchDebounceRef.current = null;
+    }
     addItem(product);
     setSearchQuery('');
     loadProducts();
@@ -75,11 +81,22 @@ export default function POS() {
 
   const handleSearch = useCallback((q: string) => {
     setSearchQuery(q);
-    loadProducts(q || undefined);
+    // Debounce the API call — a barcode scanner fires one char per ~1ms so all
+    // characters land within ~10ms and collapse into a single API call.
+    // Without this, each character triggers its own request (8+ concurrent calls)
+    // and whichever resolves first can trigger the barcode effect, adding the
+    // product before Enter fires, leaving searchQuery stale for the Enter handler.
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      loadProducts(q || undefined);
+    }, 150);
   }, [loadProducts]);
 
   const handleSearchKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key !== 'Enter' || products.length === 0) return;
+    // Guard: if query is empty, the effect already handled this scan — do nothing.
+    // Without this guard, Enter fires after the effect cleared searchQuery and
+    // falls through to products[0], adding a second (wrong) product.
+    if (e.key !== 'Enter' || !searchQuery.trim() || products.length === 0) return;
     const exact = products.find(
       (p) => p.barcode && p.barcode.toLowerCase() === searchQuery.trim().toLowerCase(),
     );
@@ -131,7 +148,10 @@ export default function POS() {
         </div>
         <div className="flex items-center gap-2">
           {items.length > 0 && (
-            <button className="text-xs text-destructive hover:underline" onClick={clearCart}>
+            <button
+              className="text-xs text-destructive hover:underline"
+              onClick={() => { clearCart(); setDiscountInput(''); }}
+            >
               Clear
             </button>
           )}

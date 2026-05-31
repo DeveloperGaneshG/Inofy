@@ -122,9 +122,12 @@ export default function PaymentModal({ open, onClose, customer, onCustomerChange
       setError('Select a customer to use Katha');
       return;
     }
-    if (!useKatha && paymentMethod === 'CASH' && parseFloat(amountTendered) < finalTotal) {
-      setError('Amount tendered is less than total');
-      return;
+    if (!useKatha && paymentMethod === 'CASH') {
+      const tendered = parseFloat(amountTendered);
+      if (isNaN(tendered) || tendered < finalTotal) {
+        setError('Amount tendered is less than total');
+        return;
+      }
     }
     setError('');
     setLoading(true);

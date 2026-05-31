@@ -18,7 +18,7 @@ api.interceptors.response.use(
     const isLoginRequest = error.config?.url?.includes('/auth/login');
     if (error.response?.status === 401 && !isLoginRequest) {
       useAuthStore.getState().logout();
-      window.location.href = '/login';
+      window.location.hash = '/login';
     }
     return Promise.reject(error);
   },

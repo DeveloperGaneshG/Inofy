@@ -38,6 +38,7 @@ export default function Users() {
   const [editing, setEditing] = useState<User | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
   const [serverError, setServerError] = useState('');
+  const [deleteError, setDeleteError] = useState('');
 
   const {
     register,
@@ -103,12 +104,13 @@ export default function Users() {
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
+    setDeleteError('');
     try {
       await userService.remove(deleteTarget.id);
       setDeleteTarget(null);
       load();
     } catch (err: any) {
-      setDeleteTarget(null);
+      setDeleteError(err.response?.data?.message || 'Failed to delete user');
     }
   };
 
@@ -271,8 +273,9 @@ export default function Users() {
             Are you sure you want to delete <span className="font-medium text-foreground">{deleteTarget?.name}</span>?
             This cannot be undone.
           </p>
+          {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+            <Button variant="outline" onClick={() => { setDeleteTarget(null); setDeleteError(''); }}>Cancel</Button>
             <Button variant="destructive" onClick={handleDelete}>Delete</Button>
           </DialogFooter>
         </DialogContent>

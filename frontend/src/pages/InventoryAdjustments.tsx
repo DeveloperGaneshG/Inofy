@@ -3,7 +3,6 @@ import { Plus, Search, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import { Product, InventoryAdjustment, AdjustmentType, AdjustmentReason } from '@/types';
 import { productService } from '@/services/productService';
 import { inventoryAdjustmentService, CreateAdjustmentPayload } from '@/services/inventoryAdjustmentService';
-import { formatCurrency } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

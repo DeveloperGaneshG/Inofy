@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, CheckCircle, XCircle, Clock, Eye, RefreshCw } from 'lucide-react';
 import { Purchase, PurchaseStatus } from '@/types';
 import { purchaseService } from '@/services/purchaseService';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -126,7 +126,7 @@ export default function Purchases() {
                     <TableCell>
                       <Badge variant="secondary">{p._count?.items ?? p.items?.length ?? 0}</Badge>
                     </TableCell>
-                    <TableCell className="font-medium">{formatCurrency(Number(p.totalAmount))}</TableCell>
+                    <TableCell className="font-medium">₹{Math.round(Number(p.totalAmount)).toLocaleString('en-IN')}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <StatusIcon className="h-3.5 w-3.5" />
@@ -186,7 +186,7 @@ export default function Purchases() {
 
       <PurchaseForm open={formOpen} onClose={() => setFormOpen(false)} onCreated={loadPurchases} />
 
-      <Dialog open={!!detailPurchase || detailLoading} onOpenChange={() => setDetailPurchase(null)}>
+      <Dialog open={!!detailPurchase || detailLoading} onOpenChange={() => { setDetailPurchase(null); setDetailLoading(false); }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
@@ -239,8 +239,8 @@ export default function Purchases() {
                       <p className="text-xs text-muted-foreground">{item.product.sku}</p>
                     </div>
                     <span>{item.quantity}</span>
-                    <span>{formatCurrency(Number(item.costPrice))}</span>
-                    <span className="font-medium">{formatCurrency(Number(item.totalCost))}</span>
+                    <span>₹{Math.round(Number(item.costPrice)).toLocaleString('en-IN')}</span>
+                    <span className="font-medium">₹{Math.round(Number(item.totalCost)).toLocaleString('en-IN')}</span>
                     <span className="font-mono text-xs">{item.batchNumber ?? '—'}</span>
                     <span className="text-xs">{item.expiryDate ? new Date(item.expiryDate).toLocaleDateString('en-IN') : '—'}</span>
                   </div>
@@ -249,7 +249,7 @@ export default function Purchases() {
 
               <div className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-3">
                 <span className="font-medium">Total Amount</span>
-                <span className="text-lg font-bold">{formatCurrency(Number(detailPurchase.totalAmount))}</span>
+                <span className="text-lg font-bold">₹{Math.round(Number(detailPurchase.totalAmount)).toLocaleString('en-IN')}</span>
               </div>
 
               {detailPurchase.status === 'DRAFT' && (
