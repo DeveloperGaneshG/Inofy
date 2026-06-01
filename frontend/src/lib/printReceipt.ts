@@ -92,27 +92,41 @@ export function printReceiptBrowser(bill: Bill): void {
   headStyle.id = STYLE_ID;
   headStyle.textContent = `
     @media print {
-      @page { size: 80mm auto; margin: 0; }
+      @page { size: 80mm auto; margin: 0mm; }
+      body { margin: 0 !important; padding: 0 !important; }
       body > * { display: none !important; }
       body > #${DIV_ID} { display: block !important; }
       #${DIV_ID} {
-        font-family: 'Courier New', monospace;
-        font-size: 12px;
-        line-height: 1.6;
-        padding: 3mm 2mm;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 11px;
+        line-height: 1.5;
+        /* Explicit width so browser never renders wider than the paper */
+        width: 80mm;
+        max-width: 80mm;
+        box-sizing: border-box;
+        padding: 2mm 2mm;
+        margin: 0;
         color: #000;
+        overflow: hidden;
+      }
+      /* Barcode SVG must scale to fit — JsBarcode sets a fixed pixel width */
+      #${DIV_ID} svg {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        margin: 0 auto;
       }
       .rp-c    { text-align: center; }
-      .rp-row  { display: flex; justify-content: space-between; gap: 4px; }
+      .rp-row  { display: flex; justify-content: space-between; gap: 4px; width: 100%; overflow: hidden; }
       .rp-bold { font-weight: bold; }
-      .rp-xl   { font-size: 14px; }
-      .rp-lg   { font-size: 13px; }
-      .rp-item { margin-bottom: 3px; }
+      .rp-xl   { font-size: 13px; }
+      .rp-lg   { font-size: 12px; }
+      .rp-item { margin-bottom: 2px; width: 100%; overflow: hidden; }
       .rp-iname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
       .rp-iamt  { flex-shrink: 0; white-space: nowrap; font-weight: 600; }
-      .rp-isub  { padding-left: 8px; font-size: 10px; color: #444; }
-      .rp-sep   { border-top: 1px solid #000; margin: 4px 0; }
-      .rp-dash  { border-top: 1px dashed #000; margin: 4px 0; }
+      .rp-isub  { padding-left: 6px; font-size: 9px; color: #444; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .rp-sep   { border-top: 1px solid #000; margin: 3px 0; }
+      .rp-dash  { border-top: 1px dashed #000; margin: 3px 0; }
     }
     #${DIV_ID} { display: none; }
   `;
