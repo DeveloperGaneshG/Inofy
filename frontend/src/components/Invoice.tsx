@@ -4,6 +4,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Bill } from '@/types';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { getStoreSettings } from '@/lib/storeSettings';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
@@ -11,13 +12,9 @@ interface Props {
   bill: Bill;
 }
 
-const MART_NAME = 'Invofy Mart';
-const MART_ADDRESS = '123 Market Street, City - 560001';
-const MART_PHONE = '+91 98765 43210';
-const MART_GST = 'GSTIN: 29AAAAA0000A1Z5';
-
 export default function Invoice({ bill }: Props) {
   const printRef = useRef<HTMLDivElement>(null);
+  const store = getStoreSettings();
 
   const handlePrint = () => {
     window.print();
@@ -30,12 +27,12 @@ export default function Invoice({ bill }: Props) {
     // Header
     doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
-    doc.text(MART_NAME, pageWidth / 2, 20, { align: 'center' });
+    doc.text(store.name, pageWidth / 2, 20, { align: 'center' });
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.text(MART_ADDRESS, pageWidth / 2, 27, { align: 'center' });
-    doc.text(MART_PHONE, pageWidth / 2, 32, { align: 'center' });
-    doc.text(MART_GST, pageWidth / 2, 37, { align: 'center' });
+    doc.text(store.address, pageWidth / 2, 27, { align: 'center' });
+    doc.text(store.phone, pageWidth / 2, 32, { align: 'center' });
+    if (store.gstin) doc.text(`GSTIN: ${store.gstin}`, pageWidth / 2, 37, { align: 'center' });
 
     // Invoice info
     doc.setFontSize(14);
@@ -104,9 +101,9 @@ export default function Invoice({ bill }: Props) {
       <div ref={printRef} className="mx-auto max-w-2xl rounded-xl border bg-white p-8 shadow-sm print:shadow-none print:border-none">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-2xl font-bold">{MART_NAME}</h1>
-          <p className="text-sm text-muted-foreground">{MART_ADDRESS}</p>
-          <p className="text-sm text-muted-foreground">{MART_PHONE} · {MART_GST}</p>
+          <h1 className="text-2xl font-bold">{store.name}</h1>
+          <p className="text-sm text-muted-foreground">{store.address}</p>
+          <p className="text-sm text-muted-foreground">{store.phone}{store.gstin ? ` · GSTIN: ${store.gstin}` : ''}</p>
         </div>
 
         <Separator className="my-4" />

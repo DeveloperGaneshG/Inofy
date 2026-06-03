@@ -80,36 +80,51 @@ export function printReceiptBrowser(bill: Bill): void {
   const customerRow = bill.customer ? `<div>Customer : ${bill.customer.name}</div>` : '';
   const gstinRow    = store.gstin   ? `<div class="rp-c">GSTIN: ${store.gstin}</div>` : '';
 
+  const itemSavings = bill.items.reduce((sum, item) => {
+    const mrp = Number(item.product?.mrp ?? item.unitPrice);
+    const disc = mrp > Number(item.unitPrice) ? (mrp - Number(item.unitPrice)) * item.quantity : 0;
+    return sum + disc;
+  }, 0);
+  const totalSaved = itemSavings + Number(bill.discountAmount);
+  const savedRow = totalSaved > 0
+    ? `<div class="rp-c rp-bold">** You saved ${formatCurrency(totalSaved)} on this bill! **</div>`
+    : '';
+
   const STYLE_ID = 'invofy-print-style';
   const DIV_ID   = 'invofy-receipt-print';
 
-  // Remove any previous elements
   document.getElementById(STYLE_ID)?.remove();
   document.getElementById(DIV_ID)?.remove();
 
-  // @page MUST be in document.head — Chrome ignores it inside div style tags
   const headStyle = document.createElement('style');
   headStyle.id = STYLE_ID;
+  // @page MUST be at top level — Chrome ignores it when nested inside @media print
+  // Width 72mm = actual printable area of an 80mm thermal roll (4mm margin each side)
   headStyle.textContent = `
+    @page { size: 80mm auto; margin: 0mm; }
+
     @media print {
-      @page { size: 80mm auto; margin: 0mm; }
-      body { margin: 0 !important; padding: 0 !important; }
+      html, body {
+        width: 80mm !important;
+        min-width: 0 !important;
+        max-width: 80mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
       body > * { display: none !important; }
       body > #${DIV_ID} { display: block !important; }
       #${DIV_ID} {
         font-family: 'Courier New', Courier, monospace;
         font-size: 11px;
         line-height: 1.5;
-        /* Explicit width so browser never renders wider than the paper */
-        width: 80mm;
-        max-width: 80mm;
+        width: 72mm;
+        max-width: 72mm;
         box-sizing: border-box;
         padding: 2mm 2mm;
         margin: 0;
         color: #000;
         overflow: hidden;
       }
-      /* Barcode SVG must scale to fit — JsBarcode sets a fixed pixel width */
       #${DIV_ID} svg {
         display: block;
         max-width: 100%;
@@ -157,6 +172,7 @@ export function printReceiptBrowser(bill: Bill): void {
     <div class="rp-sep"></div>
     <div class="rp-row rp-bold rp-lg"><span>TOTAL</span><span>${formatCurrency(Number(bill.totalAmount))}</span></div>
     <div class="rp-sep"></div>
+    ${savedRow}
     <div class="rp-c" style="margin:4px 0">${barcodeSvg}</div>
     <div class="rp-c rp-bold">** Thank you for shopping! **</div>
     <div class="rp-c">Please visit us again</div>
