@@ -99,15 +99,17 @@ export function printReceiptBrowser(bill: Bill): void {
   const headStyle = document.createElement('style');
   headStyle.id = STYLE_ID;
   // @page MUST be at top level — Chrome ignores it when nested inside @media print
-  // Width 72mm = actual printable area of an 80mm thermal roll (4mm margin each side)
+  // Use 72mm (printable area the Retsol driver reports) as page size, not 80mm physical.
+  // If @page is 80mm but printable is 72mm, Chrome centers the 68mm content div → shifts
+  // it 6mm right → right 6mm falls outside printable area → right-side clip.
   headStyle.textContent = `
-    @page { size: 80mm auto; margin: 0mm; }
+    @page { size: 72mm auto; margin: 0mm; }
 
     @media print {
       html, body {
-        width: 80mm !important;
+        width: 72mm !important;
         min-width: 0 !important;
-        max-width: 80mm !important;
+        max-width: 72mm !important;
         margin: 0 !important;
         padding: 0 !important;
       }
@@ -117,11 +119,11 @@ export function printReceiptBrowser(bill: Bill): void {
         font-family: 'Courier New', Courier, monospace;
         font-size: 11px;
         line-height: 1.5;
-        width: 72mm;
-        max-width: 72mm;
+        width: 68mm;
+        max-width: 68mm;
         box-sizing: border-box;
         padding: 2mm 2mm;
-        margin: 0;
+        margin: 0 auto;
         color: #000;
         overflow: hidden;
       }
